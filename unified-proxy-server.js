@@ -104,6 +104,29 @@ app.get('/api/nearest-slots', async (req, res) => {
     }
 });
 
+// ===== LOGGING ENDPOINTS =====
+
+// Store logs from frontend
+app.post('/api/logs', (req, res) => {
+    try {
+        const logData = req.body;
+        console.log(`📝 [LOG] ${logData.level}: ${logData.message}`, logData.data);
+        
+        // Можно добавить сохранение в файл или базу данных
+        // fs.appendFileSync('logs.txt', JSON.stringify(logData) + '\n');
+        
+        res.json({ success: true, message: 'Log received' });
+    } catch (error) {
+        console.error('❌ [LOG] Ошибка обработки лога:', error);
+        res.status(500).json({ error: 'Failed to process log' });
+    }
+});
+
+// Get logs (для отладки)
+app.get('/api/logs', (req, res) => {
+    res.json({ message: 'Logs endpoint working' });
+});
+
 // ===== TELEGRAM API ENDPOINTS =====
 
 // Proxy endpoint for sending Telegram messages
