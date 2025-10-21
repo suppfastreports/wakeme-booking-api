@@ -1615,11 +1615,11 @@
                             }
                         });
                         
-                        // Highlight today's date only if no date is already selected
-                        const hasSelectedDate = document.querySelector('.calendar-date.selected');
-                        if (i === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear() && !hasSelectedDate) {
-                            dateElement.classList.add('selected');
-                        }
+                        // НЕ выделяем сегодняшнюю дату автоматически - это будет сделано после загрузки данных о доступности
+                        // const hasSelectedDate = document.querySelector('.calendar-date.selected');
+                        // if (i === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear() && !hasSelectedDate) {
+                        //     dateElement.classList.add('selected');
+                        // }
 
                         dateElement.addEventListener('click', function() {
                             // Don't allow clicking on dates without slots
