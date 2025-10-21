@@ -1504,6 +1504,13 @@
 
         // Calendar navigation
         function changeMonth(direction) {
+            console.log('📅 [changeMonth] Переключение месяца');
+            
+            // Сохраняем текущую выбранную дату
+            const currentSelectedDate = document.querySelector('.calendar-date.selected');
+            const selectedDate = currentSelectedDate ? currentSelectedDate.dataset.date : null;
+            console.log('📅 [changeMonth] Сохраняем текущую дату:', selectedDate);
+            
             const today = new Date();
             const currentDate = new Date(currentYear, currentMonth);
             const todayDate = new Date(today.getFullYear(), today.getMonth());
@@ -1532,7 +1539,38 @@
                 return; // Don't render if we can't go to past month
             }
             
+            console.log('📅 [changeMonth] Рендерим календарь');
             renderCalendar();
+            
+            // Ждем завершения рендеринга, затем восстанавливаем дату
+            setTimeout(() => {
+                if (selectedDate) {
+                    const dateElement = document.querySelector(`.calendar-date[data-date="${selectedDate}"]`);
+                    if (dateElement && !dateElement.classList.contains('disabled')) {
+                        console.log('✅ [changeMonth] Восстанавливаем дату:', selectedDate);
+                        document.querySelectorAll('.calendar-date').forEach(d => d.classList.remove('selected'));
+                        dateElement.classList.add('selected');
+                        
+                        // Загружаем слоты для восстановленной даты
+                        loadTimeSlots();
+                    } else {
+                        console.log('❌ [changeMonth] Дата недоступна в новом месяце, ищем ближайшую');
+                        // Ищем ближайшую доступную дату
+                        const availableDates = Array.from(document.querySelectorAll('.calendar-date:not(.disabled)'));
+                        if (availableDates.length > 0) {
+                            const firstAvailable = availableDates[0];
+                            firstAvailable.classList.add('selected');
+                            console.log('✅ [changeMonth] Выбрана ближайшая доступная дата:', firstAvailable.dataset.date);
+                            loadTimeSlots();
+                        }
+                    }
+                } else {
+                    console.log('🎯 [changeMonth] Нет сохраненной даты, устанавливаем дефолтную');
+                    setDefaultDate().then(() => {
+                        loadTimeSlots();
+                    });
+                }
+            }, 200); // Ждем завершения рендеринга
         }
 
         // Render calendar
