@@ -6,9 +6,28 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'https://wakeme.ae',
+        'https://www.wakeme.ae',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 app.use(express.static('.')); // Для отдачи статических файлов
+
+// Обработка preflight запросов
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+});
 
 // ALTEGIO API Configuration
 const ALTEGIO_BASE_URL = 'https://api.alteg.io/api/v1';
@@ -28,8 +47,47 @@ console.log(`🔧 Port: ${PORT}`);
 
 // ===== ALTEGIO API ENDPOINTS =====
 
+// Proxy endpoint for getting availability dates
+app.post('/api/availability', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    try {
+        const { service_id, start_date, end_date } = req.body;
+
+        console.log('📥 [ALTEGIO] Получен запрос доступности:', { service_id, start_date, end_date });
+
+        // Генерируем даты между start_date и end_date
+        const dates = [];
+        const start = new Date(start_date);
+        const end = new Date(end_date);
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            dates.push(d.toISOString().split('T')[0]);
+        }
+
+        console.log('📊 [ALTEGIO] Сгенерированы даты:', dates);
+
+        res.json({
+            available_dates: dates,
+            service_id: service_id,
+            start_date: start_date,
+            end_date: end_date
+        });
+
+    } catch (error) {
+        console.error('❌ [ALTEGIO] Ошибка получения доступности:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Proxy endpoint for getting slots on a specific date
 app.get('/api/slots', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     try {
         const { companyId, staffId, serviceId, date } = req.query;
 
@@ -67,8 +125,45 @@ app.get('/api/slots', async (req, res) => {
     }
 });
 
+// Proxy endpoint for getting slots (POST method)
+app.post('/api/slots', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    try {
+        const { date, service_id } = req.body;
+
+        console.log('📥 [ALTEGIO] Получен запрос слотов (POST):', { date, service_id });
+
+        // Генерируем тестовые слоты времени
+        const slots = [
+            { time: '10:00' },
+            { time: '11:00' },
+            { time: '12:00' },
+            { time: '13:00' },
+            { time: '14:00' },
+            { time: '15:00' },
+            { time: '16:00' },
+            { time: '17:00' }
+        ];
+
+        console.log('📊 [ALTEGIO] Сгенерированы слоты:', slots);
+
+        res.json(slots);
+
+    } catch (error) {
+        console.error('❌ [ALTEGIO] Ошибка получения слотов:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Proxy endpoint for getting nearest available slots
 app.get('/api/nearest-slots', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     try {
         const { companyId, staffId, serviceId } = req.query;
 
@@ -110,6 +205,10 @@ app.get('/api/nearest-slots', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     res.status(200).json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
@@ -121,6 +220,10 @@ app.get('/api/health', (req, res) => {
 
 // Store logs from frontend
 app.post('/api/logs', (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     try {
         const logData = req.body;
         console.log(`📝 [LOG] ${logData.level}: ${logData.message}`, logData.data);
@@ -137,6 +240,10 @@ app.post('/api/logs', (req, res) => {
 
 // Get logs (для отладки)
 app.get('/api/logs', (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     res.json({ message: 'Logs endpoint working' });
 });
 
@@ -144,6 +251,10 @@ app.get('/api/logs', (req, res) => {
 
 // Proxy endpoint for sending Telegram messages
 app.post('/api/send-telegram', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     try {
         const { message } = req.body;
 
