@@ -1955,7 +1955,7 @@
             const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
             
             try {
-                const response = await fetch(`https://wakeme-booking-api.onrender.com/api/slots`, {
+                const response = await fetch(`https://wakeme-booking-api-production.up.railway.app/api/slots`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2074,7 +2074,7 @@
             const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
             
             try {
-                const response = await fetch(`https://wakeme-booking-api.onrender.com/api/availability`, {
+                const response = await fetch(`https://wakeme-booking-api-production.up.railway.app/api/availability`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
