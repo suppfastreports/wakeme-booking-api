@@ -215,15 +215,22 @@ app.get('/api/nearest-slots', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+    console.log('🏥 [HEALTH] Health check запрос получен');
+    
     // CORS заголовки
     res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     
-    res.status(200).json({ 
+    const healthData = { 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-    });
+        uptime: process.uptime(),
+        port: PORT,
+        pid: process.pid
+    };
+    
+    console.log('🏥 [HEALTH] Отправляем ответ:', healthData);
+    res.status(200).json(healthData);
 });
 
 // ===== LOGGING ENDPOINTS =====
@@ -302,17 +309,15 @@ app.post('/api/send-telegram', async (req, res) => {
     }
 });
 
-// ===== HEALTH CHECK =====
+// ===== ROOT ENDPOINT =====
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        services: {
-            altegio: 'Connected',
-            telegram: 'Connected'
-        },
-        timestamp: new Date().toISOString()
+// Root endpoint for basic connectivity test
+app.get('/', (req, res) => {
+    console.log('🏠 [ROOT] Root запрос получен');
+    res.status(200).json({ 
+        message: 'WakeMe Booking API is running',
+        timestamp: new Date().toISOString(),
+        port: PORT
     });
 });
 
