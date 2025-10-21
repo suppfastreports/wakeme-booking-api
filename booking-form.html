@@ -1343,69 +1343,24 @@
                 option.addEventListener('click', function() {
                     console.log('⏱️ [DURATION] Переключение длительности');
                     
-                    // Сохраняем текущую выбранную дату в глобальную переменную
-                    const currentSelectedDate = document.querySelector('.calendar-date.selected');
-                    savedDate = currentSelectedDate ? currentSelectedDate.dataset.date : null;
-                    console.log('📅 [DURATION] Сохраняем дату в глобальную переменную:', savedDate);
-                    
                     document.querySelectorAll('.duration-option').forEach(o => o.classList.remove('selected'));
                     this.classList.add('selected');
                     updateTrainerPrice(); // Обновляем цену тренера
                     clearAvailabilityCache(); // Очищаем кеш доступности при смене услуги
-                    console.log('📅 [DURATION] Перерендериваем календарь');
-                    renderCalendar(); // Обновляем календарь при изменении услуги
                     
-                    // Ждем завершения рендеринга календаря с надежной проверкой
-                    const waitForCalendarReady = () => {
-                        return new Promise((resolve) => {
-                            const checkCalendar = () => {
-                                const calendarDates = document.querySelectorAll('.calendar-date:not(.other-month)');
-                                const hasDates = calendarDates.length > 0;
-                                
-                                console.log(`🔍 [DURATION] Проверяем готовность календаря: ${hasDates}, дат: ${calendarDates.length}`);
-                                
-                                if (hasDates) {
-                                    console.log('✅ [DURATION] Календарь готов');
-                                    resolve();
-                                } else {
-                                    console.log('⏳ [DURATION] Ждем готовности календаря...');
-                                    setTimeout(checkCalendar, 100);
-                                }
-                            };
-                            checkCalendar();
-                        });
-                    };
+                    // НОВАЯ АРХИТЕКТУРА: Событийная синхронизация
+                    const selectedDuration = getSelectedDuration();
+                    const selectedLocation = getSelectedLocation();
+                    const cacheKey = `${selectedLocation}_${selectedDuration}`;
                     
-                    waitForCalendarReady().then(() => {
-                        // Дополнительная задержка для мобильных устройств
-                        setTimeout(() => {
-                            // Пытаемся восстановить сохраненную дату, если она доступна
-                            if (savedDate) {
-                                const dateElement = document.querySelector(`.calendar-date[data-date="${savedDate}"]`);
-                                if (dateElement && !dateElement.classList.contains('disabled')) {
-                                    console.log('✅ [DURATION] Восстанавливаем сохраненную дату:', savedDate);
-                                    selectDate(dateElement, savedDate);
-                                    
-                                    // Ждем завершения выбора даты перед загрузкой слотов
-                                    waitForDateSelection().then(() => {
-                                        console.log('⏰ [DURATION] Загружаем слоты времени');
-                                        loadTimeSlots();
-                                    });
-                                } else {
-                                    console.log('❌ [DURATION] Сохраненная дата недоступна, устанавливаем дефолтную');
-                                    setDefaultDate().then(() => {
-                                        console.log('⏰ [DURATION] Загружаем слоты времени');
-                                        loadTimeSlots();
-                                    });
-                                }
-                            } else {
-                                console.log('🎯 [DURATION] Нет сохраненной даты, устанавливаем дефолтную');
-                                setDefaultDate().then(() => {
-                                    console.log('⏰ [DURATION] Загружаем слоты времени');
-                                    loadTimeSlots();
-                                });
-                            }
-                        }, 300); // Увеличиваем задержку для мобильных устройств
+                    console.log('🔄 [DURATION] Переключение длительности с новой архитектурой');
+                    
+                    onServiceOrLocationChange({
+                        cacheKey,
+                        fetchAvailability,
+                        renderCalendar: renderCalendarFromData,
+                        highlightDate,
+                        fetchSlots: loadSlotsSafe
                     });
                 });
             });
@@ -1423,68 +1378,23 @@
                 btn.addEventListener('click', function() {
                     console.log('🔄 [LOCATION] Переключение локации');
                     
-                    // Сохраняем текущую выбранную дату в глобальную переменную
-                    const currentSelectedDate = document.querySelector('.calendar-date.selected');
-                    savedDate = currentSelectedDate ? currentSelectedDate.dataset.date : null;
-                    console.log('📅 [LOCATION] Сохраняем дату в глобальную переменную:', savedDate);
-                    
                     document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('selected'));
                     this.classList.add('selected');
                     clearAvailabilityCache(); // Очищаем кеш доступности при смене локации
-                    console.log('📅 [LOCATION] Перерендериваем календарь');
-                    renderCalendar(); // Обновляем календарь при изменении локации
                     
-                    // Ждем завершения рендеринга календаря с надежной проверкой
-                    const waitForCalendarReady = () => {
-                        return new Promise((resolve) => {
-                            const checkCalendar = () => {
-                                const calendarDates = document.querySelectorAll('.calendar-date:not(.other-month)');
-                                const hasDates = calendarDates.length > 0;
-                                
-                                console.log(`🔍 [LOCATION] Проверяем готовность календаря: ${hasDates}, дат: ${calendarDates.length}`);
-                                
-                                if (hasDates) {
-                                    console.log('✅ [LOCATION] Календарь готов');
-                                    resolve();
-                                } else {
-                                    console.log('⏳ [LOCATION] Ждем готовности календаря...');
-                                    setTimeout(checkCalendar, 100);
-                                }
-                            };
-                            checkCalendar();
-                        });
-                    };
+                    // НОВАЯ АРХИТЕКТУРА: Событийная синхронизация
+                    const selectedDuration = getSelectedDuration();
+                    const selectedLocation = getSelectedLocation();
+                    const cacheKey = `${selectedLocation}_${selectedDuration}`;
                     
-                    waitForCalendarReady().then(() => {
-                        // Дополнительная задержка для мобильных устройств
-                        setTimeout(() => {
-                            // Пытаемся восстановить сохраненную дату, если она доступна
-                            if (savedDate) {
-                                const dateElement = document.querySelector(`.calendar-date[data-date="${savedDate}"]`);
-                                if (dateElement && !dateElement.classList.contains('disabled')) {
-                                    console.log('✅ [LOCATION] Восстанавливаем сохраненную дату:', savedDate);
-                                    selectDate(dateElement, savedDate);
-                                    
-                                    // Ждем завершения выбора даты перед загрузкой слотов
-                                    waitForDateSelection().then(() => {
-                                        console.log('⏰ [LOCATION] Загружаем слоты времени');
-                                        loadTimeSlots();
-                                    });
-                                } else {
-                                    console.log('❌ [LOCATION] Сохраненная дата недоступна, устанавливаем дефолтную');
-                                    setDefaultDate().then(() => {
-                                        console.log('⏰ [LOCATION] Загружаем слоты времени');
-                                        loadTimeSlots();
-                                    });
-                                }
-                            } else {
-                                console.log('🎯 [LOCATION] Нет сохраненной даты, устанавливаем дефолтную');
-                                setDefaultDate().then(() => {
-                                    console.log('⏰ [LOCATION] Загружаем слоты времени');
-                                    loadTimeSlots();
-                                });
-                            }
-                        }, 300); // Увеличиваем задержку для мобильных устройств
+                    console.log('🔄 [LOCATION] Переключение локации с новой архитектурой');
+                    
+                    onServiceOrLocationChange({
+                        cacheKey,
+                        fetchAvailability,
+                        renderCalendar: renderCalendarFromData,
+                        highlightDate,
+                        fetchSlots: loadSlotsSafe
                     });
                 });
             });
@@ -2010,7 +1920,112 @@
             });
         }
 
-        // Централизованная функция для выбора даты (ИСПРАВЛЯЕТ БАГ С МНОЖЕСТВЕННЫМ ВЫБОРОМ)
+        // ===== НОВАЯ АРХИТЕКТУРА: СОБЫТИЙНАЯ СИНХРОНИЗАЦИЯ =====
+        
+        // Двойной rAF — гарантированно после layout+paint
+        const afterPaint = () => new Promise(r =>
+            requestAnimationFrame(() => requestAnimationFrame(r))
+        );
+
+        // Защита от гонок
+        let runId = 0;
+        const newRun = () => (++runId);
+        const isStale = (id) => id !== runId;
+
+        // Хранилище доступности по cacheKey как промис
+        const availabilityStore = new Map(); // cacheKey -> Promise<Availability>
+
+        function getAvailability(cacheKey, fetchFn, signal) {
+            if (!availabilityStore.has(cacheKey)) {
+                const p = fetchFn({ signal }).then(data => {
+                    if (!data || !Array.isArray(data.dates)) throw new Error('bad data');
+                    return data;
+                });
+                availabilityStore.set(cacheKey, p);
+            }
+            return availabilityStore.get(cacheKey);
+        }
+
+        // Безопасный загрузчик слотов с отменой
+        async function loadSlotsSafe(dateISO, { signal }) {
+            console.log('🎯 [loadSlotsSafe] Загружаем слоты для:', dateISO);
+            
+            const selectedDuration = getSelectedDuration();
+            const selectedLocation = getSelectedLocation();
+            const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
+            
+            const response = await fetch(`https://wakeme-booking-api.onrender.com/api/slots`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: dateISO,
+                    service_id: serviceId
+                }),
+                signal
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            
+            // Рендерим слоты времени
+            renderTimeSlots(data);
+            
+            return data;
+        }
+
+        // Рендер слотов времени
+        function renderTimeSlots(slots) {
+            console.log('⏰ [renderTimeSlots] Рендерим слоты времени:', slots);
+            
+            const timeSlots = document.querySelector('.time-slots');
+            if (!timeSlots) return;
+            
+            if (!slots || !Array.isArray(slots) || slots.length === 0) {
+                timeSlots.innerHTML = `
+                    <div class="form-error">
+                        <div class="form-error-icon">⚠️</div>
+                        <div class="form-error-title">Нет доступных слотов</div>
+                        <div class="form-error-description">Попробуйте выбрать другую дату</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            timeSlots.innerHTML = slots.map(slot => `
+                <div class="time-slot" data-time="${slot.time}">
+                    ${slot.time}
+                </div>
+            `).join('');
+            
+            // Добавляем обработчики клика
+            timeSlots.querySelectorAll('.time-slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+        }
+
+        // Ожидание DOM элемента с таймаутом
+        function waitFor(selector, { root = document, timeout = 5000 } = {}) {
+            return new Promise((resolve, reject) => {
+                const found = root.querySelector(selector);
+                if (found) return resolve(found);
+
+                const obs = new MutationObserver(() => {
+                    const el = root.querySelector(selector);
+                    if (el) { obs.disconnect(); resolve(el); }
+                });
+                obs.observe(root, { childList: true, subtree: true });
+
+                const t = setTimeout(() => {
+                    obs.disconnect();
+                    resolve(null); // не reject — UI должен деградировать мягко
+                }, timeout);
+            });
+        }
+
+        // Централизованная функция для выбора даты
         function selectDate(dateElement, dateString = null) {
             console.log('🎯 [selectDate] Выбираем дату:', dateString || dateElement.dataset.date);
             
@@ -2041,6 +2056,190 @@
                     }
                 });
             }
+        }
+
+        // ===== НОВЫЙ ПОТОК ИНИЦИАЛИЗАЦИИ =====
+        
+        // Функция получения доступности из API
+        async function fetchAvailability({ signal }) {
+            console.log('🌐 [fetchAvailability] Запрашиваем данные доступности');
+            
+            const selectedDuration = getSelectedDuration();
+            const selectedLocation = getSelectedLocation();
+            const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
+            
+            const response = await fetch(`https://wakeme-booking-api.onrender.com/api/availability`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service_id: serviceId,
+                    start_date: new Date().toISOString().split('T')[0],
+                    end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                }),
+                signal
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            
+            // Преобразуем в нужный формат
+            const dates = (data.available_dates || []).map(date => ({
+                dateISO: date,
+                hasFreeSlots: true,
+                slotsCount: 0 // Будет заполнено при загрузке слотов
+            }));
+            
+            console.log('📊 [fetchAvailability] Получены даты:', dates);
+            
+            return {
+                dates
+            };
+        }
+
+        // Рендер календаря из данных (детерминированный)
+        function renderCalendarFromData(availability) {
+            console.log('📅 [renderCalendarFromData] Рендерим календарь из данных:', availability);
+            
+            const calendarGrid = document.querySelector('.calendar-grid');
+            const calendarMonthDisplay = document.querySelector('.calendar-month');
+            
+            // Очищаем календарь
+            calendarGrid.innerHTML = '';
+            
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            calendarMonthDisplay.textContent = `${new Date(currentYear, currentMonth).toLocaleString('ru-RU', { month: 'long' })} ${currentYear}`;
+            
+            // Создаем пустые ячейки для начала месяца
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-date empty';
+                calendarGrid.appendChild(emptyCell);
+            }
+            
+            // Создаем даты
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateElement = document.createElement('div');
+                dateElement.className = 'calendar-date';
+                
+                const date = new Date(currentYear, currentMonth, i);
+                const dateString = date.toISOString().split('T')[0];
+                dateElement.dataset.date = dateString;
+                
+                // Проверяем доступность из данных API
+                const isAvailable = availability.dates.some(d => d.dateISO === dateString && d.hasFreeSlots);
+                
+                if (!isAvailable) {
+                    dateElement.classList.add('disabled');
+                }
+                
+                dateElement.textContent = i;
+                
+                // Добавляем обработчик клика
+                dateElement.addEventListener('click', () => {
+                    if (dateElement.classList.contains('disabled')) return;
+                    
+                    console.log(`🖱️ [renderCalendarFromData] Клик по дате: ${dateString}`);
+                    selectDate(dateElement, dateString);
+                    loadTimeSlots();
+                });
+                
+                calendarGrid.appendChild(dateElement);
+            }
+        }
+
+        // Выделение даты (чистая функция)
+        function highlightDate(dateISO) {
+            console.log('🎯 [highlightDate] Выделяем дату:', dateISO);
+            
+            const dateElement = document.querySelector(`.calendar-date[data-date="${dateISO}"]`);
+            if (dateElement && !dateElement.classList.contains('disabled')) {
+                selectDate(dateElement, dateISO);
+            }
+        }
+
+        // Основная функция инициализации с событийной синхронизацией
+        async function initBooking({ cacheKey, fetchAvailability, renderCalendar, highlightDate, fetchSlots }) {
+            const myRun = newRun();
+            const controller = new AbortController();
+            const { signal } = controller;
+
+            console.log('🚀 [initBooking] Начинаем инициализацию с runId:', myRun);
+
+            try {
+                // 1) Тянем данные. Никаких setTimeout.
+                const availabilityPromise = getAvailability(cacheKey, fetchAvailability, signal);
+                console.log('📡 [initBooking] Запрашиваем данные доступности...');
+
+                // 2) Ждем данные и первый paint календаря
+                const [availability] = await Promise.all([
+                    availabilityPromise,
+                    waitFor('.calendar')
+                ]);
+                
+                if (isStale(myRun)) {
+                    console.log('⏹️ [initBooking] Run устарел, отменяем');
+                    return;
+                }
+
+                console.log('✅ [initBooking] Данные получены:', availability);
+
+                // 3) Рендерим календарь строго из данных, не из DOM
+                renderCalendar(availability);
+                await afterPaint();
+                if (isStale(myRun)) return;
+
+                // 4) Выбираем дефолтную дату из данных, не из DOM
+                const firstAvailable = availability.dates.find(d => d.hasFreeSlots);
+                if (!firstAvailable) {
+                    console.log('❌ [initBooking] Нет доступных слотов');
+                    // Блокируем UI
+                    document.querySelectorAll('.calendar-date').forEach(d => d.classList.add('disabled'));
+                    return;
+                }
+
+                console.log('🎯 [initBooking] Выбираем первую доступную дату:', firstAvailable.dateISO);
+                highlightDate(firstAvailable.dateISO);
+                await afterPaint();
+                if (isStale(myRun)) return;
+
+                // 5) Загружаем слоты с отменой
+                console.log('⏰ [initBooking] Загружаем слоты времени...');
+                const slots = await fetchSlots(firstAvailable.dateISO, { signal });
+                if (isStale(myRun)) return;
+
+                console.log('✅ [initBooking] Слоты загружены:', slots);
+                // renderSlots(slots); // Ваша функция рендера слотов
+
+                // Возвращаем функцию отмены
+                return () => {
+                    console.log('🛑 [initBooking] Отменяем текущую инициализацию');
+                    controller.abort();
+                };
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('⏹️ [initBooking] Инициализация отменена');
+                } else {
+                    console.error('❌ [initBooking] Ошибка инициализации:', error);
+                }
+            }
+        }
+
+        // Глобальная переменная для отмены
+        let cancelCurrent = null;
+
+        // Обработчик смены услуги/локации без гонок
+        async function onServiceOrLocationChange({ cacheKey, ...deps }) {
+            console.log('🔄 [onServiceOrLocationChange] Смена услуги/локации');
+            
+            if (cancelCurrent) {
+                console.log('🛑 [onServiceOrLocationChange] Отменяем предыдущую инициализацию');
+                cancelCurrent(); // мгновенно гасим старые запросы
+            }
+            
+            cancelCurrent = await initBooking({ cacheKey, ...deps });
         }
 
         // Ждать завершения выбора даты
@@ -2152,38 +2351,33 @@
         }
 
         // Initialize
-        console.log('🚀 [INIT] Начинаем инициализацию формы');
-        sendLogToServer('INIT', 'Начинаем инициализацию формы');
+        // НОВАЯ АРХИТЕКТУРА: Инициализация с событийной синхронизацией
+        console.log('🚀 [INIT] Начинаем инициализацию с новой архитектурой');
+        
+        // Устанавливаем дефолтные значения
         setDefaultSelections();
         startDateMonitoring();
         
-        // НОВАЯ ЛОГИКА: Сначала загружаем данные, потом рендерим календарь, потом устанавливаем дату
-        console.log('🔄 [INIT] Загружаем ближайшие доступные даты...');
-        loadNearestAvailableDates().then(() => {
-            console.log('✅ [INIT] Ближайшие даты загружены');
-            sendLogToServer('INIT', 'Ближайшие даты загружены');
-            
-            // Рендерим календарь БЕЗ установки даты
-            console.log('📅 [INIT] Рендерим календарь');
-            renderCalendar();
-            
-            // Ждем завершения рендеринга календаря
-            setTimeout(() => {
-                console.log('🎯 [INIT] Устанавливаем дефолтную дату');
-                sendLogToServer('INIT', 'Устанавливаем дефолтную дату');
-                
-                // Устанавливаем дефолтную дату
-                setDefaultDate().then(() => {
-                    console.log('✅ [INIT] Дефолтная дата установлена');
-                    sendLogToServer('INIT', 'Дефолтная дата установлена');
-                    
-                    // Только ПОСЛЕ установки даты загружаем слоты
-                    console.log('⏰ [INIT] Загружаем слоты времени');
-                    loadTimeSlots();
-                    console.log('🏁 [INIT] Инициализация завершена');
-                    sendLogToServer('INIT', 'Инициализация завершена');
-                });
-            }, 500); // Увеличиваем задержку для стабильности
+        // Инициализируем с новой архитектурой
+        const selectedDuration = getSelectedDuration();
+        const selectedLocation = getSelectedLocation();
+        const cacheKey = `${selectedLocation}_${selectedDuration}`;
+        
+        console.log('🔄 [INIT] Инициализация с новой архитектурой для:', cacheKey);
+        
+        initBooking({
+            cacheKey,
+            fetchAvailability,
+            renderCalendar: renderCalendarFromData,
+            highlightDate,
+            fetchSlots: loadSlotsSafe
+        }).then((cancelFn) => {
+            if (cancelFn) {
+                cancelCurrent = cancelFn;
+                console.log('✅ [INIT] Инициализация завершена, функция отмены установлена');
+            }
+        }).catch(error => {
+            console.error('❌ [INIT] Ошибка инициализации:', error);
         });
     </script>
 </body>
