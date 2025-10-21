@@ -9,7 +9,9 @@
     "test": "echo 'No tests configured'",
     "proxy": "node proxy-server.js",
     "unified": "node unified-proxy-server.js",
-    "dev": "node unified-proxy-server.js"
+    "dev": "node unified-proxy-server.js",
+    "build": "echo 'No build step required'",
+    "postinstall": "echo 'Dependencies installed'"
   },
   "dependencies": {
     "cors": "^2.8.5",

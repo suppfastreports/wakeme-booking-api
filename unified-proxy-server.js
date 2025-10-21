@@ -104,6 +104,17 @@ app.get('/api/nearest-slots', async (req, res) => {
     }
 });
 
+// ===== HEALTH CHECK =====
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
 // ===== LOGGING ENDPOINTS =====
 
 // Store logs from frontend
