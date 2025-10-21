@@ -2214,38 +2214,67 @@
                 await afterPaint();
                 if (isStale(myRun)) return;
 
-                // 4) Выбираем дату: сначала пытаемся восстановить сохраненную, потом первую доступную
+                // 4) Выбираем дату с валидацией слотов
                 let selectedDate = null;
                 
                 if (savedDate) {
                     // Проверяем, доступна ли сохраненная дата в новой локации
                     const savedDateAvailable = availability.dates.find(d => d.dateISO === savedDate && d.hasFreeSlots);
                     if (savedDateAvailable) {
-                        selectedDate = savedDateAvailable;
-                        console.log('✅ [initBooking] Восстанавливаем сохраненную дату:', savedDate);
+                        // Валидируем реальную доступность слотов для сохраненной даты
+                        console.log('🔍 [initBooking] Проверяем слоты для сохраненной даты:', savedDate);
+                        try {
+                            const testSlots = await fetchSlots(savedDate, { signal });
+                            if (testSlots && testSlots.length > 0) {
+                                selectedDate = savedDateAvailable;
+                                console.log('✅ [initBooking] Восстанавливаем сохраненную дату:', savedDate);
+                            } else {
+                                console.log('❌ [initBooking] Сохраненная дата не имеет реальных слотов:', savedDate);
+                            }
+                        } catch (error) {
+                            console.log('❌ [initBooking] Ошибка при проверке сохраненной даты:', error.message);
+                        }
                     } else {
                         console.log('❌ [initBooking] Сохраненная дата недоступна в новой локации:', savedDate);
                     }
                 }
                 
-                // Если сохраненная дата недоступна, выбираем первую доступную
+                // Если сохраненная дата недоступна, ищем первую с реальными слотами
                 if (!selectedDate) {
-                    selectedDate = availability.dates.find(d => d.hasFreeSlots);
+                    console.log('🔍 [initBooking] Ищем дату с реальными слотами...');
+                    
+                    for (const dateInfo of availability.dates) {
+                        if (!dateInfo.hasFreeSlots) continue;
+                        
+                        try {
+                            console.log('🔍 [initBooking] Проверяем дату:', dateInfo.dateISO);
+                            const testSlots = await fetchSlots(dateInfo.dateISO, { signal });
+                            if (testSlots && testSlots.length > 0) {
+                                selectedDate = dateInfo;
+                                console.log('✅ [initBooking] Найдена дата с реальными слотами:', dateInfo.dateISO);
+                                break;
+                            } else {
+                                console.log('❌ [initBooking] Дата без реальных слотов:', dateInfo.dateISO);
+                            }
+                        } catch (error) {
+                            console.log('❌ [initBooking] Ошибка при проверке даты:', dateInfo.dateISO, error.message);
+                        }
+                    }
+                    
                     if (!selectedDate) {
-                        console.log('❌ [initBooking] Нет доступных слотов');
+                        console.log('❌ [initBooking] Нет дат с реальными слотами');
                         // Блокируем UI
                         document.querySelectorAll('.calendar-date').forEach(d => d.classList.add('disabled'));
                         return;
                     }
-                    console.log('🎯 [initBooking] Выбираем первую доступную дату:', selectedDate.dateISO);
                 }
 
                 highlightDate(selectedDate.dateISO);
                 await afterPaint();
                 if (isStale(myRun)) return;
 
-                // 5) Загружаем слоты с отменой
-                console.log('⏰ [initBooking] Загружаем слоты времени...');
+                // 5) Загружаем слоты для выбранной даты
+                console.log('⏰ [initBooking] Загружаем слоты времени для:', selectedDate.dateISO);
                 const slots = await fetchSlots(selectedDate.dateISO, { signal });
                 if (isStale(myRun)) return;
 
