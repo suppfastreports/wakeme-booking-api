@@ -5,6 +5,11 @@ import fetch from 'node-fetch';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Проверяем, что порт доступен
+console.log('🔧 Проверяем порт:', PORT);
+console.log('🔧 Render PORT:', process.env.PORT);
+console.log('🔧 Render NODE_ENV:', process.env.NODE_ENV);
+
 // Middleware
 app.use(cors({
     origin: [
@@ -44,6 +49,11 @@ console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ?
 console.log(`🌐 Сервер: http://localhost:${PORT}`);
 console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🔧 Port: ${PORT}`);
+console.log('🔧 Process ID:', process.pid);
+console.log('🔧 Node Version:', process.version);
+console.log('🔧 Platform:', process.platform);
+console.log('🔧 Working Directory:', process.cwd());
+console.log('🔧 Environment Variables:', Object.keys(process.env).length);
 
 // ===== ALTEGIO API ENDPOINTS =====
 
