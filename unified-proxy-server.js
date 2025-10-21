@@ -25,14 +25,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('.')); // Для отдачи статических файлов
 
-// Обработка preflight запросов
-app.options('/*', (req, res) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.sendStatus(200);
-});
+// Обработка preflight запросов - убираем проблемный эндпоинт
+// CORS middleware уже обрабатывает OPTIONS запросы
 
 // ALTEGIO API Configuration
 const ALTEGIO_BASE_URL = 'https://api.alteg.io/api/v1';
