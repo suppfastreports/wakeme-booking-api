@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "API для онлайн-записи через ALTEGIO",
   "type": "module",
-  "main": "altegio_test.js",
+  "main": "unified-proxy-server.js",
   "scripts": {
-    "start": "node altegio_test.js",
+    "start": "node unified-proxy-server.js",
     "test": "node altegio_test.js",
     "proxy": "node proxy-server.js",
     "unified": "node unified-proxy-server.js",
