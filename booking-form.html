@@ -1955,7 +1955,7 @@
             const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
             
             try {
-                const response = await fetch(`/api/slots`, {
+                const response = await fetch(`https://wakeme-booking-api.onrender.com/api/slots`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1974,23 +1974,7 @@
                 return data;
             } catch (error) {
                 console.error('❌ [loadSlotsSafe] Ошибка загрузки слотов:', error);
-                
-                // Fallback: генерируем тестовые слоты
-                const fallbackSlots = [
-                    { time: '10:00' },
-                    { time: '11:00' },
-                    { time: '12:00' },
-                    { time: '13:00' },
-                    { time: '14:00' },
-                    { time: '15:00' },
-                    { time: '16:00' },
-                    { time: '17:00' }
-                ];
-                
-                console.log('🔄 [loadSlotsSafe] Используем fallback слоты:', fallbackSlots);
-                renderTimeSlots(fallbackSlots);
-                
-                return fallbackSlots;
+                throw error; // Пробрасываем ошибку дальше
             }
         }
 
@@ -2090,7 +2074,7 @@
             const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
             
             try {
-                const response = await fetch(`/api/availability`, {
+                const response = await fetch(`https://wakeme-booking-api.onrender.com/api/availability`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2118,24 +2102,7 @@
                 };
             } catch (error) {
                 console.error('❌ [fetchAvailability] Ошибка загрузки данных:', error);
-                
-                // Fallback: генерируем даты на ближайшие 30 дней
-                const fallbackDates = [];
-                const today = new Date();
-                for (let i = 0; i < 30; i++) {
-                    const date = new Date(today);
-                    date.setDate(today.getDate() + i);
-                    fallbackDates.push({
-                        dateISO: date.toISOString().split('T')[0],
-                        hasFreeSlots: true,
-                        slotsCount: 0
-                    });
-                }
-                
-                console.log('🔄 [fetchAvailability] Используем fallback даты:', fallbackDates);
-                return {
-                    dates: fallbackDates
-                };
+                throw error; // Пробрасываем ошибку дальше
             }
         }
 
@@ -2430,6 +2397,29 @@
             }
         }).catch(error => {
             console.error('❌ [INIT] Ошибка инициализации:', error);
+            
+            // Показываем ошибку пользователю
+            const calendarGrid = document.querySelector('.calendar-grid');
+            if (calendarGrid) {
+                calendarGrid.innerHTML = `
+                    <div class="form-error">
+                        <div class="form-error-icon">⚠️</div>
+                        <div class="form-error-title">Ошибка загрузки данных</div>
+                        <div class="form-error-description">Не удалось подключиться к серверу. Проверьте подключение к интернету.</div>
+                    </div>
+                `;
+            }
+            
+            const timeSlots = document.querySelector('.time-slots');
+            if (timeSlots) {
+                timeSlots.innerHTML = `
+                    <div class="form-error">
+                        <div class="form-error-icon">⚠️</div>
+                        <div class="form-error-title">Нет доступных слотов</div>
+                        <div class="form-error-description">Попробуйте обновить страницу</div>
+                    </div>
+                `;
+            }
         });
     </script>
 </body>
