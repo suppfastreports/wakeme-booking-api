@@ -262,8 +262,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             flex: 1;
             width: 100%;
+            min-height: 60px;
         }
 
         .trainer-btn:hover {
@@ -605,6 +607,35 @@
             color: #ff4444;
             background: #fff5f5;
             border-radius: 8px;
+        }
+
+        .form-error {
+            text-align: center;
+            padding: 30px 20px;
+            background: #fff5f5;
+            border-radius: 12px;
+            border: 1px solid #f8d7da;
+        }
+
+        .form-error-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+
+        .form-error-title {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #721c24;
+            margin-bottom: 8px;
+        }
+
+        .form-error-description {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            color: #721c24;
+            opacity: 0.8;
         }
 
         /* Calendar Styles */
@@ -1138,7 +1169,13 @@
                     timeSlots.appendChild(slotElement);
                 });
             } else {
-                timeSlots.innerHTML = '<div class="error">Нет доступных слотов на сегодня</div>';
+                timeSlots.innerHTML = `
+                    <div class="form-error">
+                        <div class="form-error-icon">⚠️</div>
+                        <div class="form-error-title">Нет доступных слотов на эту дату</div>
+                        <div class="form-error-description">Пожалуйста выберите другой день</div>
+                    </div>
+                `;
             }
         }
 
