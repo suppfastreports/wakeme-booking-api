@@ -1746,7 +1746,30 @@
             console.log(`🎯 [setDefaultDate] Начинаем установку дефолтной даты для ${cacheKey}`);
             sendLogToServer('SET_DEFAULT_DATE', `Начинаем установку дефолтной даты для ${cacheKey}`);
             
-            let defaultDate = null;
+            // Ждем загрузки данных о доступности дат
+            const waitForAvailabilityData = () => {
+                return new Promise((availabilityResolve) => {
+                    const checkAvailability = () => {
+                        // Проверяем, что календарь отрендерен и есть данные о доступности
+                        const calendarDates = document.querySelectorAll('.calendar-date:not(.disabled)');
+                        const hasAvailabilityData = calendarDates.length > 0;
+                        
+                        console.log(`🔍 [setDefaultDate] Проверяем доступность данных: ${hasAvailabilityData}, дат: ${calendarDates.length}`);
+                        
+                        if (hasAvailabilityData) {
+                            console.log('✅ [setDefaultDate] Данные о доступности загружены');
+                            availabilityResolve();
+                        } else {
+                            console.log('⏳ [setDefaultDate] Ждем загрузки данных о доступности...');
+                            setTimeout(checkAvailability, 100);
+                        }
+                    };
+                    checkAvailability();
+                });
+            };
+            
+            waitForAvailabilityData().then(() => {
+                let defaultDate = null;
             
             // Если есть данные о ближайших датах, используем их
             if (nearestAvailableDates.has(cacheKey)) {
@@ -1823,6 +1846,7 @@
                     selected: el.classList.contains('selected')
                 })));
             }
+            });
             });
         }
 
