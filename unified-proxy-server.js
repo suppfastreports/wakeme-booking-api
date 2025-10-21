@@ -20,8 +20,8 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HER
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || 'YOUR_CHAT_ID_HERE';
 
 console.log('🚀 Универсальный прокси-сервер запущен');
-console.log('📊 ALTEGIO API: Настроен');
-console.log('📱 Telegram Bot: Настроен');
+console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
+console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log(`🌐 Сервер: http://localhost:${PORT}`);
 
 // ===== ALTEGIO API ENDPOINTS =====
@@ -161,7 +161,7 @@ app.get('/api/health', (req, res) => {
 
 // ===== SERVER START =====
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Универсальный прокси-сервер запущен на порту ${PORT}`);
     console.log(`📱 Форма доступна по адресу: http://localhost:${PORT}/booking-form.html`);
     console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
@@ -171,4 +171,7 @@ app.listen(PORT, () => {
     console.log('  • GET  /api/nearest-slots - ближайшие слоты ALTEGIO');
     console.log('  • POST /api/send-telegram - отправка в Telegram');
     console.log('  • GET  /api/health - проверка состояния');
+}).on('error', (err) => {
+    console.error('❌ Ошибка запуска сервера:', err);
+    process.exit(1);
 });
