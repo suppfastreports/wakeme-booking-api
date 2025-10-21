@@ -1387,6 +1387,12 @@
                                     document.querySelectorAll('.calendar-date').forEach(d => d.classList.remove('selected'));
                                     dateElement.classList.add('selected');
                                     
+                                    // Принудительно обновляем стили для визуального отображения
+                                    dateElement.style.background = '#64D7F2';
+                                    dateElement.style.color = 'white';
+                                    
+                                    console.log('🎨 [DURATION] Принудительно обновили стили для даты:', savedDate);
+                                    
                                     // Ждем завершения выбора даты перед загрузкой слотов
                                     waitForDateSelection().then(() => {
                                         console.log('⏰ [DURATION] Загружаем слоты времени');
@@ -1466,6 +1472,12 @@
                                     console.log('✅ [LOCATION] Восстанавливаем сохраненную дату:', savedDate);
                                     document.querySelectorAll('.calendar-date').forEach(d => d.classList.remove('selected'));
                                     dateElement.classList.add('selected');
+                                    
+                                    // Принудительно обновляем стили для визуального отображения
+                                    dateElement.style.background = '#64D7F2';
+                                    dateElement.style.color = 'white';
+                                    
+                                    console.log('🎨 [LOCATION] Принудительно обновили стили для даты:', savedDate);
                                     
                                     // Ждем завершения выбора даты перед загрузкой слотов
                                     waitForDateSelection().then(() => {
@@ -1664,6 +1676,12 @@
                             console.log('✅ [changeMonth] Восстанавливаем дату:', selectedDate);
                             document.querySelectorAll('.calendar-date').forEach(d => d.classList.remove('selected'));
                             dateElement.classList.add('selected');
+                            
+                            // Принудительно обновляем стили для визуального отображения
+                            dateElement.style.background = '#64D7F2';
+                            dateElement.style.color = 'white';
+                            
+                            console.log('🎨 [changeMonth] Принудительно обновили стили для даты:', selectedDate);
                             
                             // Загружаем слоты для восстановленной даты
                             loadTimeSlots();
