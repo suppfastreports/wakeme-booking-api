@@ -1,1 +1,1 @@
-web: node unified-proxy-server.js
+web: npm start
