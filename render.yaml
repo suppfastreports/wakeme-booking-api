@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: wakeme-booking-api
+    env: node
+    buildCommand: npm install
+    startCommand: node unified-proxy-server.js
+    envVars:
+      - key: ALTEGIO_TOKEN
+        value: 4de4nx2z7nbush7jcad8
+      - key: ALTEGIO_PARTNER_ID
+        value: 1296
+      - key: TELEGRAM_BOT_TOKEN
+        value: YOUR_BOT_TOKEN_HERE
+      - key: TELEGRAM_CHAT_ID
+        value: -1002681477081
