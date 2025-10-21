@@ -2139,7 +2139,8 @@
                 dateElement.className = 'calendar-date';
                 
                 const date = new Date(currentYear, currentMonth, i);
-                const dateString = date.toISOString().split('T')[0];
+                // Используем локальную дату без конвертации в UTC
+                const dateString = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
                 dateElement.dataset.date = dateString;
                 
                 // Проверяем доступность из данных API
