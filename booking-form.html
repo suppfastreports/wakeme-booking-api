@@ -1770,6 +1770,11 @@
             } else {
                 console.log(`❌ [setDefaultDate] ПРОБЛЕМА: Ни одна дата не выбрана!`);
                 console.log('🔍 [setDefaultDate] Доступные даты:', Array.from(document.querySelectorAll('.calendar-date:not(.disabled)')).map(el => el.dataset.date));
+                console.log('🔍 [setDefaultDate] Все даты:', Array.from(document.querySelectorAll('.calendar-date')).map(el => ({
+                    date: el.dataset.date,
+                    disabled: el.classList.contains('disabled'),
+                    selected: el.classList.contains('selected')
+                })));
             }
             });
         }
@@ -1777,13 +1782,29 @@
         // Ждать завершения выбора даты
         function waitForDateSelection() {
             return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 100; // 5 секунд максимум
+                
                 const checkDateSelection = () => {
+                    attempts++;
                     const selectedDate = document.querySelector('.calendar-date.selected');
+                    const allDates = document.querySelectorAll('.calendar-date');
+                    const availableDates = document.querySelectorAll('.calendar-date:not(.disabled)');
+                    
+                    console.log(`⏳ [waitForDateSelection] Попытка ${attempts}/${maxAttempts}:`, {
+                        selectedDate: selectedDate ? selectedDate.dataset.date : 'НЕТ',
+                        totalDates: allDates.length,
+                        availableDates: availableDates.length,
+                        disabledDates: document.querySelectorAll('.calendar-date.disabled').length
+                    });
+                    
                     if (selectedDate) {
                         console.log('✅ [waitForDateSelection] Дата выбрана:', selectedDate.dataset.date);
                         resolve();
+                    } else if (attempts >= maxAttempts) {
+                        console.log('❌ [waitForDateSelection] Таймаут! Принудительно продолжаем');
+                        resolve();
                     } else {
-                        console.log('⏳ [waitForDateSelection] Ждем выбора даты...');
                         setTimeout(checkDateSelection, 50);
                     }
                 };
@@ -1791,9 +1812,28 @@
             });
         }
 
+        // Мониторинг изменений дат
+        function startDateMonitoring() {
+            let lastSelectedDate = null;
+            setInterval(() => {
+                const currentSelectedDate = document.querySelector('.calendar-date.selected');
+                const currentDate = currentSelectedDate ? currentSelectedDate.dataset.date : null;
+                
+                if (currentDate !== lastSelectedDate) {
+                    console.log('📅 [MONITOR] Изменение выбранной даты:', {
+                        from: lastSelectedDate,
+                        to: currentDate,
+                        timestamp: new Date().toLocaleTimeString()
+                    });
+                    lastSelectedDate = currentDate;
+                }
+            }, 100);
+        }
+
         // Initialize
         console.log('🚀 [INIT] Начинаем инициализацию формы');
         setDefaultSelections();
+        startDateMonitoring();
         
         // Загружаем ближайшие доступные даты и затем рендерим календарь
         console.log('🔄 [INIT] Загружаем ближайшие доступные даты...');
