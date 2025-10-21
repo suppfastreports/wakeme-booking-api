@@ -1499,6 +1499,10 @@
         // Render calendar
         function renderCalendar() {
             console.log('📅 [renderCalendar] Начинаем рендеринг календаря');
+            console.log('🔍 [renderCalendar] Проверяем текущее состояние дат перед рендерингом:', {
+                selectedDates: document.querySelectorAll('.calendar-date.selected').length,
+                totalDates: document.querySelectorAll('.calendar-date').length
+            });
             const calendarGrid = document.querySelector('.calendar-grid');
             const calendarMonthDisplay = document.querySelector('.calendar-month');
             
@@ -1628,6 +1632,7 @@
                                 return;
                             }
                             
+                            console.log(`🖱️ [renderCalendar] Клик по дате: ${dateString}`);
                             document.querySelectorAll('.calendar-date').forEach(d => d.classList.remove('selected'));
                             this.classList.add('selected');
                             loadTimeSlots();
@@ -1693,6 +1698,7 @@
         // Установить дефолтную дату (ближайшую доступную)
         function setDefaultDate() {
             return new Promise((resolve) => {
+            console.log('🎯 [setDefaultDate] ВЫЗОВ setDefaultDate - стек вызовов:', new Error().stack);
             const selectedLocation = getSelectedLocation();
             const selectedDuration = getSelectedDuration();
             const cacheKey = `${selectedLocation}_${selectedDuration}`;
