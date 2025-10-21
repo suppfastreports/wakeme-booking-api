@@ -1,0 +1,31 @@
+{
+  "name": "altegio-booking-api",
+  "version": "1.0.0",
+  "description": "API для онлайн-записи через ALTEGIO",
+  "type": "module",
+  "main": "altegio_test.js",
+  "scripts": {
+    "start": "node altegio_test.js",
+    "test": "node altegio_test.js",
+    "proxy": "node proxy-server.js",
+    "unified": "node unified-proxy-server.js",
+    "dev": "node unified-proxy-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.22"
+  },
+  "keywords": [
+    "altegio",
+    "booking",
+    "api",
+    "онлайн-запись"
+  ],
+  "author": "WakeMe",
+  "license": "MIT"
+}
