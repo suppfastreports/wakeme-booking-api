@@ -5,7 +5,7 @@
   "type": "module",
   "main": "unified-proxy-server.js",
   "scripts": {
-    "start": "node unified-proxy-server.js",
+    "start": "node start.js",
     "test": "node altegio_test.js",
     "proxy": "node proxy-server.js",
     "unified": "node unified-proxy-server.js",
