@@ -1911,18 +1911,32 @@
             console.log(`🎯 [setDefaultDate] Начинаем установку дефолтной даты для ${cacheKey}`);
             sendLogToServer('SET_DEFAULT_DATE', `Начинаем установку дефолтной даты для ${cacheKey}`);
             
-            // Ждем загрузки данных о доступности дат
+            // АГРЕССИВНОЕ ожидание загрузки данных о доступности для мобилок
             const waitForAvailabilityData = () => {
                 return new Promise((availabilityResolve) => {
+                    let attempts = 0;
+                    const maxAttempts = 50; // 5 секунд максимум
+                    
                     const checkAvailability = () => {
+                        attempts++;
+                        
                         // Проверяем, что календарь отрендерен и есть данные о доступности
                         const calendarDates = document.querySelectorAll('.calendar-date:not(.disabled)');
                         const hasAvailabilityData = calendarDates.length > 0;
                         
-                        console.log(`🔍 [setDefaultDate] Проверяем доступность данных: ${hasAvailabilityData}, дат: ${calendarDates.length}`);
+                        // Дополнительная проверка - есть ли данные в кэше
+                        const selectedLocation = getSelectedLocation();
+                        const selectedDuration = getSelectedDuration();
+                        const cacheKey = `${selectedLocation}_${selectedDuration}`;
+                        const hasCacheData = nearestAvailableDates.has(cacheKey);
                         
-                        if (hasAvailabilityData) {
-                            console.log('✅ [setDefaultDate] Данные о доступности загружены');
+                        console.log(`🔍 [setDefaultDate] Попытка ${attempts}/${maxAttempts}: доступность=${hasAvailabilityData}, дат=${calendarDates.length}, кэш=${hasCacheData}`);
+                        
+                        if (hasAvailabilityData && hasCacheData) {
+                            console.log('✅ [setDefaultDate] Данные о доступности загружены И кэш заполнен');
+                            availabilityResolve();
+                        } else if (attempts >= maxAttempts) {
+                            console.log('⚠️ [setDefaultDate] Таймаут ожидания, продолжаем с тем что есть');
                             availabilityResolve();
                         } else {
                             console.log('⏳ [setDefaultDate] Ждем загрузки данных о доступности...');
@@ -1934,7 +1948,10 @@
             };
             
             waitForAvailabilityData().then(() => {
-                let defaultDate = null;
+                // ДОПОЛНИТЕЛЬНАЯ задержка для мобильных устройств
+                console.log('📱 [setDefaultDate] Дополнительная задержка для мобилок...');
+                setTimeout(() => {
+                    let defaultDate = null;
             
             // Если есть данные о ближайших датах, используем их
             if (nearestAvailableDates.has(cacheKey)) {
@@ -2012,6 +2029,7 @@
                 })));
             }
             });
+            }, 500); // Дополнительная задержка для мобилок
             });
         }
 
