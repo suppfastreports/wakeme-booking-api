@@ -1815,9 +1815,30 @@
         // Мониторинг изменений дат
         function startDateMonitoring() {
             let lastSelectedDate = null;
+            
+            // Создаем визуальный индикатор для мобильных устройств
+            const debugPanel = document.createElement('div');
+            debugPanel.id = 'debug-panel';
+            debugPanel.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-size: 12px;
+                z-index: 9999;
+                max-width: 200px;
+                font-family: monospace;
+            `;
+            document.body.appendChild(debugPanel);
+            
             setInterval(() => {
                 const currentSelectedDate = document.querySelector('.calendar-date.selected');
                 const currentDate = currentSelectedDate ? currentSelectedDate.dataset.date : null;
+                const availableDates = document.querySelectorAll('.calendar-date:not(.disabled)').length;
+                const totalDates = document.querySelectorAll('.calendar-date').length;
                 
                 if (currentDate !== lastSelectedDate) {
                     console.log('📅 [MONITOR] Изменение выбранной даты:', {
@@ -1827,6 +1848,13 @@
                     });
                     lastSelectedDate = currentDate;
                 }
+                
+                // Обновляем визуальный индикатор
+                debugPanel.innerHTML = `
+                    <div>📅 Дата: ${currentDate || 'НЕТ'}</div>
+                    <div>📊 Доступно: ${availableDates}/${totalDates}</div>
+                    <div>⏰ ${new Date().toLocaleTimeString()}</div>
+                `;
             }, 100);
         }
 
