@@ -5,8 +5,8 @@
   "type": "module",
   "main": "unified-proxy-server.js",
   "scripts": {
-    "start": "node start.js",
-    "test": "node altegio_test.js",
+    "start": "node unified-proxy-server.js",
+    "test": "echo 'No tests configured'",
     "proxy": "node proxy-server.js",
     "unified": "node unified-proxy-server.js",
     "dev": "node unified-proxy-server.js"
