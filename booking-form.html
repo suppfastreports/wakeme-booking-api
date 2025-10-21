@@ -1281,10 +1281,15 @@
         function getCurrentDate() {
             const selectedDateElement = document.querySelector('.calendar-date.selected');
             if (selectedDateElement && selectedDateElement.dataset.date) {
-                return selectedDateElement.dataset.date;
+                // Убеждаемся, что дата в правильном формате YYYY-MM-DD
+                const dateStr = selectedDateElement.dataset.date;
+                console.log('📅 [getCurrentDate] Получаем дату из DOM:', dateStr);
+                return dateStr;
             }
             const today = new Date();
-            return today.toISOString().split('T')[0];
+            const todayStr = today.toISOString().split('T')[0];
+            console.log('📅 [getCurrentDate] Fallback на сегодняшнюю дату:', todayStr);
+            return todayStr;
         }
 
         function getSelectedTimeSlot() {
@@ -2352,6 +2357,7 @@
                 }
                 
                 // Обновляем визуальный индикатор
+                console.log('📊 [DEBUG_PANEL] Обновляем панель с датой:', currentDate);
                 debugPanel.innerHTML = `
                     <div>📅 Дата: ${currentDate || 'НЕТ'}</div>
                     <div>📊 Доступно: ${availableDates}/${totalDates}</div>
