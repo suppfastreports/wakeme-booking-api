@@ -12,12 +12,12 @@ app.use(express.static('.')); // Для отдачи статических фа
 
 // ALTEGIO API Configuration
 const ALTEGIO_BASE_URL = 'https://api.alteg.io/api/v1';
-const ALTEGIO_TOKEN = '4de4nx2z7nbush7jcad8';
-const ALTEGIO_PARTNER_ID = '1296';
+const ALTEGIO_TOKEN = process.env.ALTEGIO_TOKEN || 'YOUR_ALTEGIO_TOKEN_HERE';
+const ALTEGIO_PARTNER_ID = process.env.ALTEGIO_PARTNER_ID || 'YOUR_PARTNER_ID_HERE';
 
 // Telegram Bot Configuration
-const TELEGRAM_BOT_TOKEN = '8259669153:AAGiGoebw2FOiX9HjTpVd8Ar3lnwhikAYwo';
-const TELEGRAM_CHAT_ID = '-1002681477081';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || 'YOUR_CHAT_ID_HERE';
 
 console.log('🚀 Универсальный прокси-сервер запущен');
 console.log('📊 ALTEGIO API: Настроен');
