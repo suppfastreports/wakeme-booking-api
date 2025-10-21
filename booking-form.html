@@ -33,6 +33,7 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 20px;
         }
 
         .main-content {
@@ -732,6 +733,11 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 0 5%;
+                max-width: 90%;
+            }
+            
             .main-content {
                 grid-template-columns: 1fr;
                 gap: 20px;
@@ -743,9 +749,11 @@
             .time-section {
                 grid-column: 1;
             }
+            
+            /* Секция времени теперь работает с реальным API */
 
             .duration-options {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
 
             .time-slots-grid {
@@ -755,15 +763,31 @@
             .booking-form form {
                 flex-direction: column;
                 gap: 16px;
+                align-items: center;
             }
 
             .form-group {
                 margin-bottom: 16px;
                 min-width: auto;
+                width: 100%;
             }
 
             .booking-btn {
                 min-width: auto;
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 2%;
+                max-width: 95%;
+            }
+            
+            .duration-options {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -893,7 +917,7 @@
     <script>
         // API Configuration
         const API_CONFIG = {
-            proxyUrl: 'http://localhost:3000',
+            proxyUrl: 'https://wakeme-booking-api.onrender.com',
             companyId: 1252189,
             locations: {
                 'DUBAI_HARBOUR_MARINA': {
