@@ -40,6 +40,7 @@ app.use(express.static('.')); // Для отдачи статических фа
 const ALTEGIO_BASE_URL = 'https://api.alteg.io/api/v1';
 const ALTEGIO_TOKEN = process.env.ALTEGIO_TOKEN || 'YOUR_ALTEGIO_TOKEN_HERE';
 const ALTEGIO_PARTNER_ID = process.env.ALTEGIO_PARTNER_ID || 'YOUR_PARTNER_ID_HERE';
+const ALTEGIO_COMPANY_ID = process.env.ALTEGIO_COMPANY_ID || '1252189';
 
 // Telegram Bot Configuration
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
@@ -54,6 +55,7 @@ const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 console.log('🚀 Универсальный прокси-сервер запущен');
 console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
+console.log('🏢 Altegio Company ID:', ALTEGIO_COMPANY_ID ? ALTEGIO_COMPANY_ID : 'НЕ ЗАДАН');
 console.log('💳 Stripe:', STRIPE_SECRET_KEY ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log(`🌐 Сервер: http://localhost:${PORT}`);
 console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
