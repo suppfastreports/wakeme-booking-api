@@ -52,6 +52,30 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 
+// Location/Service mapping (server mirror of frontend config)
+const LOCATION_CONFIG = {
+    DUBAI_HARBOUR_MARINA: {
+        staffId: 2742288,
+        services: {
+            30: 12199769,
+            45: 12952120,
+            60: 12200654,
+            90: 12200653,
+            120: 12203754
+        }
+    },
+    DUBAI_CREEK_HARBOUR: {
+        staffId: 2780637,
+        services: {
+            30: 12396457,
+            45: 12952179,
+            60: 12396432,
+            90: 12396453,
+            120: 12396454
+        }
+    }
+};
+
 console.log('🚀 Универсальный прокси-сервер запущен');
 console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
@@ -447,6 +471,80 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 });
 
+// Create Altegio booking (after payment usually, but can be used pre-payment as draft)
+app.post('/api/altegio/book', async (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    try {
+        const { location, duration, date, time, name, phone, email } = req.body || {};
+        if (!location || !duration || !date || !time || !name || !phone) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const loc = LOCATION_CONFIG[location];
+        if (!loc) return res.status(400).json({ error: 'Unknown location' });
+        const staffId = loc.staffId;
+        const serviceId = loc.services[duration];
+        if (!serviceId) return res.status(400).json({ error: 'Unknown service for duration' });
+
+        const datetime = new Date(`${date}T${time}:00`).toISOString();
+
+        // 1) Optional: check params
+        const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                'Accept': 'application/vnd.api.v2+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appointments: [
+                    { id: 1, services: [serviceId], staff_id: staffId, datetime }
+                ]
+            })
+        });
+        if (checkResp.status !== 201) {
+            const text = await checkResp.text();
+            return res.status(422).json({ error: 'Altegio check failed', details: text });
+        }
+
+        // 2) Create record
+        const recordResp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                'Accept': 'application/vnd.api.v2+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                phone: phone,
+                fullname: name,
+                email: email || '',
+                type: 'website',
+                notify_by_sms: 6,
+                notify_by_email: 0,
+                appointments: [
+                    { id: 1, services: [serviceId], staff_id: staffId, datetime }
+                ]
+            })
+        });
+
+        const bodyText = await recordResp.text();
+        if (recordResp.status !== 201) {
+            return res.status(recordResp.status).json({ error: 'Altegio booking failed', details: bodyText });
+        }
+        let data;
+        try { data = JSON.parse(bodyText); } catch { data = { raw: bodyText }; }
+        return res.status(201).json({ success: true, data });
+    } catch (error) {
+        console.error('❌ [ALTEGIO] Ошибка создания записи:', error);
+        return res.status(500).json({ error: 'Failed to create Altegio booking' });
+    }
+});
+
 // Stripe webhook: отправляем в Telegram только оплаченные заказы
 app.post('/api/stripe/webhook', async (req, res) => {
     const sig = req.headers['stripe-signature'];
@@ -473,7 +571,7 @@ app.post('/api/stripe/webhook', async (req, res) => {
             const md = session.metadata || {};
             const amountAed = md.amount_aed || Math.round((session.amount_total || 0) / 100);
 
-            const message = `*Оплаченная бронь WakeMe*\n\n*Клиент:* ${md.name || '-'}\n*Телефон:* ${md.phone || '-'}\n*Локация:* ${md.location || '-'}\n*Длительность:* ${md.duration || '-'} мин\n*Тренер:* ${md.trainer === 'with' ? 'С тренером' : 'Без тренера'}\n*Время:* ${md.time || '-'}\n*Стоимость:* ${amountAed} AED\n*Дата:* ${md.date || '-'}\n*Stripe:* ${session.id}`;
+            const message = `*Оплаченная бронь WakeMe*\n\n*Клиент:* ${md.customer_name || '-'}\n*Телефон:* ${md.customer_phone || '-'}\n*Локация:* ${md.location || '-'}\n*Длительность:* ${md.duration_minutes || '-'} мин\n*Тренер:* ${md.trainer === 'with_coach' ? 'С тренером' : 'Без тренера'}\n*Время:* ${md.time || '-'}\n*Стоимость:* ${md.amount_aed_with_vat || amountAed} AED (с VAT)\n*Дата:* ${md.date || '-'}\n*Stripe:* ${session.id}`;
 
             try {
                 const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
