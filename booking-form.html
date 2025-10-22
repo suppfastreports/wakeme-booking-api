@@ -30,6 +30,11 @@
             border: none;
         }
 
+        /* Phone UI fallback */
+        .phone-row { display: flex; gap: 8px; align-items: center; }
+        .phone-code-select { height: 42px; border: 1px solid #e9ecef; border-radius: 8px; padding: 0 8px; background: #fff; }
+        .phone-code-badge { min-width: 70px; height: 42px; display: flex; align-items: center; justify-content: center; background: #f1f3f5; border-radius: 8px; font-size: 14px; color: #333; }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -1339,15 +1344,70 @@
                                 utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js',
                                 preferredCountries: ['ae','ru','ua','kz']
                             });
+                            console.log('[phone] intl-tel-input initialized');
+                            try { fetch(`${API_CONFIG.proxyUrl}/api/logs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ level:'info', message:'phone:init:plugin', data:{} }) }); } catch(e){}
                         }
                     } catch (e) {
                         console.warn('intl-tel-input init failed:', e);
+                        try { fetch(`${API_CONFIG.proxyUrl}/api/logs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ level:'error', message:'phone:init:plugin_failed', data:{ error: String(e) } }) }); } catch(_){}
                     }
                 };
 
                 if (document.readyState === 'complete') initTel();
                 else window.addEventListener('load', initTel);
 
+                // Fallback простого префикса страны, если плагин не загрузился
+                const mountSimplePrefix = () => {
+                    if (window.intlTelInput || phoneInput.dataset.simpleMounted) return;
+                    phoneInput.dataset.simpleMounted = '1';
+                    console.log('[phone] mount simple prefix fallback');
+                    try { fetch(`${API_CONFIG.proxyUrl}/api/logs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ level:'info', message:'phone:init:fallback', data:{} }) }); } catch(_){}
+
+                    const row = document.createElement('div');
+                    row.className = 'phone-row';
+                    const select = document.createElement('select');
+                    select.className = 'phone-code-select';
+                    const codes = [
+                        {cc:'AE', dial:'+971', label:'UAE'},
+                        {cc:'RU', dial:'+7', label:'Russia'},
+                        {cc:'UA', dial:'+380', label:'Ukraine'},
+                        {cc:'KZ', dial:'+7', label:'Kazakhstan'}
+                    ];
+                    codes.forEach(c => {
+                        const o = document.createElement('option');
+                        o.value = c.dial; o.textContent = `${c.label} (${c.dial})`;
+                        if (c.cc === 'AE') o.selected = true;
+                        select.appendChild(o);
+                    });
+                    const badge = document.createElement('div');
+                    badge.className = 'phone-code-badge';
+                    badge.textContent = select.value;
+                    select.addEventListener('change', () => { badge.textContent = select.value; });
+
+                    const parent = phoneInput.parentElement;
+                    parent.replaceChildren();
+                    row.appendChild(select);
+                    row.appendChild(badge);
+                    row.appendChild(phoneInput);
+                    parent.appendChild(row);
+
+                    // только цифры в локальной части
+                    phoneInput.addEventListener('input', function() {
+                        const digits = this.value.replace(/\D/g, '');
+                        if (this.value !== digits) this.value = digits;
+                    });
+
+                    // комбинируем номер на сабмите
+                    document.getElementById('bookingForm').addEventListener('submit', function() {
+                        const full = `${badge.textContent}${phoneInput.value}`;
+                        phoneInput.value = full.replace(/\D/g, '');
+                    });
+                };
+
+                // Если через 800мс плагин не появился — включаем fallback
+                setTimeout(() => { if (!window.intlTelInput) mountSimplePrefix(); }, 800);
+
+                // только цифры в локальной части (для обоих режимов)
                 phoneInput.addEventListener('input', function() {
                     const digits = this.value.replace(/\D/g, '');
                     if (this.value !== digits) this.value = digits;
