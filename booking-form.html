@@ -1321,18 +1321,32 @@
             const phoneInput = document.getElementById('clientPhone');
             if (phoneInput) {
                 let iti = null;
-                try {
-                    if (window.intlTelInput) {
-                        iti = window.intlTelInput(phoneInput, {
-                            initialCountry: 'ae',
-                            separateDialCode: true,
-                            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js',
-                            preferredCountries: ['ae','ru','ua','kz']
-                        });
+                const initTel = () => {
+                    try {
+                        if (window.intlTelInput) {
+                            iti = window.intlTelInput(phoneInput, {
+                                // авто-детект страны по IP
+                                initialCountry: 'auto',
+                                geoIpLookup: function(success) {
+                                    fetch('https://ipapi.co/json/')
+                                        .then(res => res.json())
+                                        .then(data => success((data && data.country_code) || 'AE'))
+                                        .catch(() => success('AE'));
+                                },
+                                separateDialCode: true,
+                                nationalMode: false, // будем отправлять E.164
+                                autoPlaceholder: 'off', // без маски для локальной части
+                                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js',
+                                preferredCountries: ['ae','ru','ua','kz']
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('intl-tel-input init failed:', e);
                     }
-                } catch (e) {
-                    console.warn('intl-tel-input init failed:', e);
-                }
+                };
+
+                if (document.readyState === 'complete') initTel();
+                else window.addEventListener('load', initTel);
 
                 phoneInput.addEventListener('input', function() {
                     const digits = this.value.replace(/\D/g, '');
