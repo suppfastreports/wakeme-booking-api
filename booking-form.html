@@ -1313,6 +1313,15 @@
                     hidePopup();
                 }
             });
+
+            const phoneInput = document.getElementById('clientPhone');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function() {
+                    const digits = this.value.replace(/\D/g, '');
+                    if (this.value !== digits) this.value = digits;
+                });
+            }
+
             // Duration selection
             document.querySelectorAll('.duration-option').forEach(option => {
                 option.addEventListener('click', function() {
@@ -1374,7 +1383,12 @@
             // Booking form submission
             document.getElementById('bookingForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
+
+                const phoneInput = document.getElementById('clientPhone');
+                if (phoneInput) {
+                    phoneInput.value = phoneInput.value.replace(/\D/g, '');
+                }
+
                 const selectedTime = getSelectedTimeSlot();
                 if (!selectedTime) {
                     showPopup('error', 'Выберите время', 'Пожалуйста, выберите время для бронирования');
@@ -1571,8 +1585,6 @@
             calendarGrid.innerHTML = ''; // Очищаем перед показом скелета
             // Показываем скелет анимацию для календаря
             calendarGrid.innerHTML = `
-                <div class="calendar-date skeleton"></div>
-                <div class="calendar-date skeleton"></div>
                 <div class="calendar-date skeleton"></div>
                 <div class="calendar-date skeleton"></div>
                 <div class="calendar-date skeleton"></div>

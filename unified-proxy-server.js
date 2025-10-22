@@ -149,8 +149,9 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
 
     // 2) Create record
     async function requestCreate(withServices) {
+        const sanitizedPhone = String(phone || '').replace(/\D/g, '');
         const body = {
-            phone,
+            phone: sanitizedPhone,
             fullname: name,
             email: email || '',
             type: 'website',
