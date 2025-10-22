@@ -100,13 +100,15 @@ app.post('/api/availability', async (req, res) => {
 
         console.log('📊 [ALTEGIO] Проверяем доступность для дат:', allDates);
 
-        // Проверяем реальную доступность каждой даты
+        // Проверяем реальную доступность каждой даты с ограничением параллелизма
         const availableDates = [];
-        
-        for (const date of allDates) {
+        const concurrency = 6; // мягкий лимит параллельных запросов
+
+        async function checkDate(date) {
+            const apiUrl = `${ALTEGIO_BASE_URL}/book_times/${ALTEGIO_COMPANY_ID}/${staffId}/${date}?service_ids[]=${service_id}`;
             try {
-                const apiUrl = `${ALTEGIO_BASE_URL}/book_times/${ALTEGIO_COMPANY_ID}/${staffId}/${date}?service_ids[]=${service_id}`;
-                
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 7000);
                 const response = await fetch(apiUrl, {
                     method: 'GET',
                     headers: {
@@ -114,24 +116,30 @@ app.post('/api/availability', async (req, res) => {
                         'X-Partner-ID': ALTEGIO_PARTNER_ID,
                         'Accept': 'application/vnd.api.v2+json',
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    signal: controller.signal
                 });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    // Проверяем, есть ли реальные слоты
-                    if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-                        availableDates.push(date);
-                        console.log(`✅ [ALTEGIO] Дата ${date} доступна (${data.data.length} слотов)`);
-                    } else {
-                        console.log(`❌ [ALTEGIO] Дата ${date} недоступна (нет слотов)`);
-                    }
-                } else {
+                clearTimeout(timeout);
+                if (!response.ok) {
                     console.log(`❌ [ALTEGIO] Дата ${date} недоступна (ошибка API: ${response.status})`);
+                    return;
+                }
+                const data = await response.json();
+                if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+                    availableDates.push(date);
+                    console.log(`✅ [ALTEGIO] Дата ${date} доступна (${data.data.length} слотов)`);
+                } else {
+                    console.log(`❌ [ALTEGIO] Дата ${date} недоступна (нет слотов)`);
                 }
             } catch (error) {
                 console.log(`❌ [ALTEGIO] Ошибка проверки даты ${date}:`, error.message);
             }
+        }
+
+        // Параллельная обработка батчами
+        for (let i = 0; i < allDates.length; i += concurrency) {
+            const batch = allDates.slice(i, i + concurrency);
+            await Promise.allSettled(batch.map(checkDate));
         }
 
         console.log('📊 [ALTEGIO] Доступные даты:', availableDates);
@@ -395,7 +403,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             return res.status(400).json({ error: 'Отсутствуют обязательные поля для оплаты' });
         }
 
-        const productName = `WakeMe — ${duration} мин ${trainer === 'with' ? '+ тренер' : ''}`.trim();
+        const productName = `WakeMe — ${duration} min${trainer === 'with' ? ' + coach' : ''}`.trim();
         // amount_aed сейчас передаётся БЕЗ НДС, добавим 5% VAT для Дубая
         const baseAmount = Number(amount_aed);
         const amountWithVat = Math.round(baseAmount * 1.05 * 100); // AED->fils с VAT
@@ -418,14 +426,14 @@ app.post('/api/create-checkout-session', async (req, res) => {
             success_url: `${APP_URL}/booking-form.html?paid=1&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${APP_URL}/booking-form.html?canceled=1`,
             metadata: {
-                name: name || '',
-                phone: phone || '',
-                location: location || '',
-                duration: String(duration || ''),
-                trainer: trainer || '',
+                customer_name: name || '',
+                customer_phone: phone || '',
+                location,
+                duration_minutes: String(duration || ''),
+                trainer: trainer === 'with' ? 'with_coach' : 'without_coach',
                 time: time || '',
                 date: date || '',
-                amount_aed_no_vat: String(amount_aed),
+                amount_aed_no_vat: String(baseAmount),
                 vat_percent: '5',
                 amount_aed_with_vat: String(Math.round(baseAmount * 1.05))
             }
