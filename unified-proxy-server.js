@@ -214,6 +214,24 @@ async function addAltegioPayment({ recordId, amountAed, paymentTypeTitle = 'Card
     return text;
 }
 
+// Fallback: mark record as prepaid and append comment
+async function markAltegioPrepaid({ recordId, comment }) {
+    const payload = {
+        comment: comment || 'Paid online',
+        prepaid_confirmed: true
+    };
+    const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}/${recordId}`, {
+        method: 'PUT',
+        headers: buildAltegioHeaders(true),
+        body: JSON.stringify(payload)
+    });
+    const text = await resp.text();
+    if (!resp.ok) {
+        throw new Error(`Mark prepaid failed: ${text}`);
+    }
+    return text;
+}
+
 console.log('🚀 Универсальный прокси-сервер запущен');
 console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
@@ -817,6 +835,12 @@ app.post('/api/stripe/webhook', async (req, res) => {
                         console.log('💸 [ALTEGIO] Оплата добавлена к визиту:', payRes);
                     } catch (payErr) {
                         console.error('❌ [ALTEGIO] Не удалось добавить оплату к визиту:', payErr);
+                        try {
+                            const mark = await markAltegioPrepaid({ recordId, comment: `Paid via Stripe ${session.id}` });
+                            console.log('✅ [ALTEGIO] Отметили визит как предоплаченный:', mark);
+                        } catch (markErr) {
+                            console.error('❌ [ALTEGIO] Не удалось отметить визит как предоплаченный:', markErr);
+                        }
                     }
                 } else {
                     console.warn('⚠️ [ALTEGIO] Не найден record_id в ответе при создании записи');
