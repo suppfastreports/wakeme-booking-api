@@ -41,6 +41,7 @@ const ALTEGIO_BASE_URL = 'https://api.alteg.io/api/v1';
 const ALTEGIO_TOKEN = process.env.ALTEGIO_TOKEN || 'YOUR_ALTEGIO_TOKEN_HERE';
 const ALTEGIO_PARTNER_ID = process.env.ALTEGIO_PARTNER_ID || 'YOUR_PARTNER_ID_HERE';
 const ALTEGIO_COMPANY_ID = process.env.ALTEGIO_COMPANY_ID || '1252189';
+const ALTEGIO_USER_TOKEN = process.env.ALTEGIO_USER_TOKEN || '';
 
 // Telegram Bot Configuration
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
@@ -103,11 +104,11 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
 
     const datetime = formatWithOffset(date, time, typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : TIMEZONE_OFFSET_MINUTES);
 
-    // 1) Check params
+    // 1) Check params (user token — admin route, надёжнее при включённой предоплате)
     const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+            'Authorization': `Bearer ${ALTEGIO_USER_TOKEN || ALTEGIO_TOKEN}`,
             'X-Partner-ID': ALTEGIO_PARTNER_ID,
             'Accept': 'application/vnd.api.v2+json',
             'Content-Type': 'application/json'
@@ -136,7 +137,7 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
         const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                'Authorization': `Bearer ${ALTEGIO_USER_TOKEN || ALTEGIO_TOKEN}`,
                 'X-Partner-ID': ALTEGIO_PARTNER_ID,
                 'Accept': 'application/vnd.api.v2+json',
                 'Content-Type': 'application/json'
@@ -174,7 +175,7 @@ async function addAltegioPayment({ recordId, amountAed, paymentTypeTitle = 'Card
     const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}/${recordId}/payments`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+            'Authorization': `Bearer ${ALTEGIO_USER_TOKEN || ALTEGIO_TOKEN}`,
             'X-Partner-ID': ALTEGIO_PARTNER_ID,
             'Accept': 'application/vnd.api.v2+json',
             'Content-Type': 'application/json'
@@ -192,6 +193,7 @@ console.log('🚀 Универсальный прокси-сервер запу�
 console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('🏢 Altegio Company ID:', ALTEGIO_COMPANY_ID ? ALTEGIO_COMPANY_ID : 'НЕ ЗАДАН');
+console.log('👤 Altegio User Token:', ALTEGIO_USER_TOKEN ? 'Настроен' : 'НЕ ЗАДАН');
 console.log('💳 Stripe:', STRIPE_SECRET_KEY ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log(`🌐 Сервер: http://localhost:${PORT}`);
 console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
