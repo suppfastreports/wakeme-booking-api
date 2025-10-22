@@ -76,6 +76,67 @@ const LOCATION_CONFIG = {
     }
 };
 
+// ===== Helpers =====
+async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId }) {
+    const loc = LOCATION_CONFIG[location];
+    if (!loc) {
+        throw new Error('Unknown location');
+    }
+    const staffId = loc.staffId;
+    const serviceId = loc.services[duration];
+    if (!serviceId) {
+        throw new Error('Unknown service for duration');
+    }
+
+    const datetime = new Date(`${date}T${time}:00`).toISOString();
+
+    // 1) Check params
+    const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+            'X-Partner-ID': ALTEGIO_PARTNER_ID,
+            'Accept': 'application/vnd.api.v2+json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ]
+        })
+    });
+    if (checkResp.status !== 201) {
+        const text = await checkResp.text();
+        throw new Error(`Altegio check failed: ${text}`);
+    }
+
+    // 2) Create record
+    const recordResp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+            'X-Partner-ID': ALTEGIO_PARTNER_ID,
+            'Accept': 'application/vnd.api.v2+json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            phone,
+            fullname: name,
+            email: email || '',
+            type: 'website',
+            notify_by_sms: 6,
+            notify_by_email: 0,
+            api_id: apiId || undefined,
+            appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ]
+        })
+    });
+    const bodyText = await recordResp.text();
+    if (recordResp.status !== 201) {
+        throw new Error(`Altegio booking failed: ${bodyText}`);
+    }
+    let data;
+    try { data = JSON.parse(bodyText); } catch { data = { raw: bodyText }; }
+    return data;
+}
+
 console.log('🚀 Универсальный прокси-сервер запущен');
 console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
@@ -569,7 +630,7 @@ app.post('/api/stripe/webhook', async (req, res) => {
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
             const md = session.metadata || {};
-            const amountAed = md.amount_aed || Math.round((session.amount_total || 0) / 100);
+            const amountAed = md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100);
 
             const message = `*Оплаченная бронь WakeMe*\n\n*Клиент:* ${md.customer_name || '-'}\n*Телефон:* ${md.customer_phone || '-'}\n*Локация:* ${md.location || '-'}\n*Длительность:* ${md.duration_minutes || '-'} мин\n*Тренер:* ${md.trainer === 'with_coach' ? 'С тренером' : 'Без тренера'}\n*Время:* ${md.time || '-'}\n*Стоимость:* ${md.amount_aed_with_vat || amountAed} AED (с VAT)\n*Дата:* ${md.date || '-'}\n*Stripe:* ${session.id}`;
 
@@ -586,6 +647,24 @@ app.post('/api/stripe/webhook', async (req, res) => {
                 });
             } catch (tgErr) {
                 console.error('❌ [TELEGRAM] Не удалось отправить сообщение об оплате:', tgErr);
+            }
+
+            // Create booking in Altegio after successful payment
+            try {
+                console.log('🗓️ [ALTEGIO] Создаём запись после оплаты...');
+                const booking = await createAltegioBooking({
+                    location: md.location,
+                    duration: Number(md.duration_minutes),
+                    date: md.date,
+                    time: md.time,
+                    name: md.customer_name,
+                    phone: md.customer_phone,
+                    email: md.customer_email || '',
+                    apiId: session.id
+                });
+                console.log('✅ [ALTEGIO] Запись создана:', booking);
+            } catch (bookErr) {
+                console.error('❌ [ALTEGIO] Не удалось создать запись после оплаты:', bookErr);
             }
         }
 
