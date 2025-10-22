@@ -709,6 +709,55 @@ app.post('/api/altegio/book', async (req, res) => {
     }
 });
 
+// ===== TEST ENDPOINTS (no Stripe) =====
+// Create booking directly in Altegio for testing (can also add a tiny payment)
+app.post('/api/altegio/test', async (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    try {
+        const { location, duration, date, time, name, phone, simulatePayment } = req.body || {};
+        if (!location || !duration || !date || !time || !name || !phone) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Use hybrid flow inside createAltegioBooking. Pass small paymentSum for partner attempt
+        const attempt = await createAltegioBooking({
+            location,
+            duration: Number(duration),
+            date,
+            time,
+            name,
+            phone,
+            email: '',
+            apiId: 'TEST',
+            paymentSumAed: 1
+        });
+
+        const result = { record: { status: attempt.resp?.status, body: attempt.text } };
+
+        // Try to parse record_id from response
+        let parsed;
+        try { parsed = JSON.parse(attempt.text); } catch {}
+        const created = parsed && (Array.isArray(parsed.data) ? parsed.data[0] : parsed.data);
+        const recordId = created?.record_id || created?.id;
+
+        if (simulatePayment && recordId) {
+            try {
+                const payRes = await addAltegioPayment({ recordId, amountAed: 1, comment: 'TEST payment via API' });
+                result.payment = { ok: true, body: payRes };
+            } catch (e) {
+                result.payment = { ok: false, error: String(e) };
+            }
+        }
+
+        return res.status(200).json({ success: true, ...result });
+    } catch (error) {
+        console.error('❌ [ALTEGIO TEST] Ошибка тестовой записи:', error);
+        return res.status(500).json({ error: 'Failed test booking', details: error.message });
+    }
+});
+
 // Stripe webhook: отправляем в Telegram только оплаченные заказы
 app.post('/api/stripe/webhook', async (req, res) => {
     const sig = req.headers['stripe-signature'];
