@@ -971,8 +971,8 @@
     </div>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/css/intlTelInput.css">
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/intlTelInput.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/intlTelInput.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js"></script>
 
     <script>
         // API Configuration
@@ -1320,13 +1320,19 @@
 
             const phoneInput = document.getElementById('clientPhone');
             if (phoneInput) {
-                // intl-tel-input init
-                const iti = window.intlTelInput(phoneInput, {
-                    initialCountry: 'ae',
-                    separateDialCode: true,
-                    utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js',
-                    preferredCountries: ['ae','ru','ua','kz']
-                });
+                let iti = null;
+                try {
+                    if (window.intlTelInput) {
+                        iti = window.intlTelInput(phoneInput, {
+                            initialCountry: 'ae',
+                            separateDialCode: true,
+                            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js',
+                            preferredCountries: ['ae','ru','ua','kz']
+                        });
+                    }
+                } catch (e) {
+                    console.warn('intl-tel-input init failed:', e);
+                }
 
                 phoneInput.addEventListener('input', function() {
                     const digits = this.value.replace(/\D/g, '');
@@ -1335,9 +1341,15 @@
 
                 // При сабмите заменяем на полный международный формат
                 document.getElementById('bookingForm').addEventListener('submit', function() {
-                    if (iti && iti.getNumber) {
-                        const full = iti.getNumber();
-                        phoneInput.value = full.replace(/\D/g, '');
+                    try {
+                        if (iti && iti.getNumber) {
+                            const full = iti.getNumber();
+                            phoneInput.value = full.replace(/\D/g, '');
+                        } else {
+                            phoneInput.value = phoneInput.value.replace(/\D/g, '');
+                        }
+                    } catch (e) {
+                        phoneInput.value = phoneInput.value.replace(/\D/g, '');
                     }
                 });
             }
