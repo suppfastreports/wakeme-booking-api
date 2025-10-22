@@ -1258,6 +1258,15 @@
                 amount_aed: amountAed
             };
 
+            // Клиентский лог
+            try {
+                fetch(`${API_CONFIG.proxyUrl}/api/logs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level: 'info', message: 'create-checkout-session:start', data: payload })
+                });
+            } catch (e) {}
+
             const response = await fetch(`${API_CONFIG.proxyUrl}/api/create-checkout-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1266,6 +1275,13 @@
 
             if (!response.ok) {
                 const text = await response.text();
+                try {
+                    fetch(`${API_CONFIG.proxyUrl}/api/logs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ level: 'error', message: 'create-checkout-session:failed', data: { status: response.status, body: text } })
+                    });
+                } catch (e) {}
                 throw new Error(text || 'Не удалось создать сессию Stripe');
             }
 
@@ -1273,6 +1289,13 @@
             if (data && data.url) {
                 window.location.href = data.url;
             } else {
+                try {
+                    fetch(`${API_CONFIG.proxyUrl}/api/logs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ level: 'error', message: 'create-checkout-session:no-url', data: data })
+                    });
+                } catch (e) {}
                 throw new Error('Не удалось получить URL Stripe');
             }
         }

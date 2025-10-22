@@ -373,6 +373,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     res.header('Access-Control-Allow-Credentials', 'true');
 
     try {
+        console.log('💳 [STRIPE] Запрос на создание Checkout-сессии:', req.body);
         if (!stripe) {
             return res.status(500).json({ error: 'Stripe не настроен на сервере' });
         }
@@ -424,6 +425,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             }
         });
 
+        console.log('✅ [STRIPE] Сессия создана:', session.id);
         return res.json({ url: session.url });
     } catch (error) {
         console.error('❌ [STRIPE] Ошибка создания Checkout-сессии:', error);
