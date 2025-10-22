@@ -91,7 +91,7 @@ function buildAltegioHeaders(useUserToken) {
     }
     return base;
 }
-async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId, timezoneOffsetMinutes }) {
+async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId, paymentSumAed }) {
     const loc = LOCATION_CONFIG[location];
     if (!loc) {
         throw new Error('Unknown location');
@@ -114,7 +114,8 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
         return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00${sign}${offH}:${offM}`;
     }
 
-    const datetime = formatWithOffset(date, time, typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : TIMEZONE_OFFSET_MINUTES);
+    // Всегда используем таймзону компании (Дубай +04:00)
+    const datetime = formatWithOffset(date, time, TIMEZONE_OFFSET_MINUTES);
 
     const useUserTokenForRecord = Boolean(ALTEGIO_USER_TOKEN);
     console.log('🧭 [ALTEGIO] Token mode (check -> record):', 'partner_token', '->', useUserTokenForRecord ? 'user_token' : 'partner_token');
@@ -150,19 +151,45 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
         };
         // На создание записи идём с user_token (без X-Partner-ID)
-        const recordHeaders = buildAltegioHeaders(useUserTokenForRecord);
-        console.log('🔐 [ALTEGIO] Headers for record:', {
-            Authorization: useUserTokenForRecord ? 'user_token' : 'partner_token',
-            hasPartnerIdHeader: Boolean(recordHeaders['X-Partner-ID'] || false)
-        });
-        console.log('🕒 [ALTEGIO] Datetime to send:', datetime, 'serviceId:', serviceId, 'staffId:', staffId);
-        const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
-            method: 'POST',
-            headers: recordHeaders,
-            body: JSON.stringify(body)
-        });
-        const text = await resp.text();
-        return { resp, text };
+        async function postRecord(headers) {
+            console.log('🔐 [ALTEGIO] Headers for record:', {
+                Authorization: headers.Authorization?.startsWith('Bearer') && headers.Authorization.includes(ALTEGIO_USER_TOKEN) ? 'user_token' : 'partner_token',
+                hasPartnerIdHeader: Boolean(headers['X-Partner-ID'] || false)
+            });
+            console.log('🕒 [ALTEGIO] Datetime to send:', datetime, 'serviceId:', serviceId, 'staffId:', staffId);
+            const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body)
+            });
+            const text = await resp.text();
+            return { resp, text };
+        }
+
+        // Попытка 1: партнёрский токен c prepaid признаками, чтобы пройти «обязательную предоплату»
+        const partnerHeaders = buildAltegioHeaders(false);
+        const partnerBody = {
+            ...body,
+            payment_sum: typeof paymentSumAed === 'number' ? paymentSumAed : undefined,
+            prepaid_confirmed: true
+        };
+        let attempt = await (async () => {
+            const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
+                method: 'POST',
+                headers: partnerHeaders,
+                body: JSON.stringify(partnerBody)
+            });
+            const text = await resp.text();
+            return { resp, text };
+        })();
+
+        // Если не удалось — попытка 2: user_token (админ)
+        if (attempt.resp.status !== 201) {
+            console.warn('⚠️ [ALTEGIO] Partner record failed, try with user_token');
+            const recordHeaders = buildAltegioHeaders(useUserTokenForRecord);
+            attempt = await postRecord(recordHeaders);
+        }
+        return attempt;
     }
 
     // Try with services first, then fallback without services if Altegio complains about online payment list
@@ -737,7 +764,7 @@ app.post('/api/stripe/webhook', async (req, res) => {
                     phone: md.customer_phone,
                     email: md.customer_email || '',
                     apiId: session.id,
-                    timezoneOffsetMinutes: Number(md.timezone_offset_minutes || TIMEZONE_OFFSET_MINUTES)
+                    paymentSumAed: Number(md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100))
                 });
                 console.log('✅ [ALTEGIO] Запись создана:', booking);
 
