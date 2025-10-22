@@ -161,6 +161,33 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
     return data;
 }
 
+// Add payment to visit in Altegio
+async function addAltegioPayment({ recordId, amountAed, paymentTypeTitle = 'Card payment', comment = '' }) {
+    // Найдём id типа оплаты по названию (если доступен эндпоинт). Если нет — отправим без type_id, многие аккаунты подставляют дефолтный тип для безнала
+    const typeId = undefined;
+    const payload = {
+        amount: Number(amountAed),
+        currency: 'AED',
+        type: 1, // 1 — безналичный платёж (обычно соответствует эквайрингу)
+        comment
+    };
+    const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}/${recordId}/payments`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+            'X-Partner-ID': ALTEGIO_PARTNER_ID,
+            'Accept': 'application/vnd.api.v2+json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+    const text = await resp.text();
+    if (!resp.ok) {
+        throw new Error(`Add payment failed: ${text}`);
+    }
+    return text;
+}
+
 console.log('🚀 Универсальный прокси-сервер запущен');
 console.log('📊 ALTEGIO API:', ALTEGIO_TOKEN !== 'YOUR_ALTEGIO_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
 console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ? 'Настроен' : 'НЕ НАСТРОЕН');
@@ -699,6 +726,25 @@ app.post('/api/stripe/webhook', async (req, res) => {
                     timezoneOffsetMinutes: Number(md.timezone_offset_minutes || TIMEZONE_OFFSET_MINUTES)
                 });
                 console.log('✅ [ALTEGIO] Запись создана:', booking);
+
+                // Получим record_id из ответа и добавим оплату
+                const created = Array.isArray(booking?.data) ? booking.data[0] : booking?.data || {};
+                const recordId = created.record_id || created.id;
+                if (recordId) {
+                    try {
+                        const paidAmount = Number(md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100));
+                        const payRes = await addAltegioPayment({
+                            recordId,
+                            amountAed: paidAmount,
+                            comment: `Paid via Stripe ${session.id}`
+                        });
+                        console.log('💸 [ALTEGIO] Оплата добавлена к визиту:', payRes);
+                    } catch (payErr) {
+                        console.error('❌ [ALTEGIO] Не удалось добавить оплату к визиту:', payErr);
+                    }
+                } else {
+                    console.warn('⚠️ [ALTEGIO] Не найден record_id в ответе при создании записи');
+                }
             } catch (bookErr) {
                 console.error('❌ [ALTEGIO] Не удалось создать запись после оплаты:', bookErr);
             }
