@@ -158,6 +158,7 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             notify_by_sms: 6,
             notify_by_email: 0,
             api_id: apiId || undefined,
+            comment: 'Оплачено через сайт',
             appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
         };
         // На создание записи идём с user_token (без X-Partner-ID)
@@ -830,13 +831,13 @@ app.post('/api/stripe/webhook', async (req, res) => {
                         const payRes = await addAltegioPayment({
                             recordId,
                             amountAed: paidAmount,
-                            comment: `Paid via Stripe ${session.id}`
+                            comment: `Оплачено через сайт (Stripe ${session.id})`
                         });
                         console.log('💸 [ALTEGIO] Оплата добавлена к визиту:', payRes);
                     } catch (payErr) {
                         console.error('❌ [ALTEGIO] Не удалось добавить оплату к визиту:', payErr);
                         try {
-                            const mark = await markAltegioPrepaid({ recordId, comment: `Paid via Stripe ${session.id}` });
+                            const mark = await markAltegioPrepaid({ recordId, comment: `Оплачено через сайт (Stripe ${session.id})` });
                             console.log('✅ [ALTEGIO] Отметили визит как предоплаченный:', mark);
                         } catch (markErr) {
                             console.error('❌ [ALTEGIO] Не удалось отметить визит как предоплаченный:', markErr);
