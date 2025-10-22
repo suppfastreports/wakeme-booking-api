@@ -396,7 +396,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
         }
 
         const productName = `WakeMe — ${duration} мин ${trainer === 'with' ? '+ тренер' : ''}`.trim();
-        const unitAmount = Math.round(Number(amount_aed) * 100); // AED -> fils
+        // amount_aed сейчас передаётся БЕЗ НДС, добавим 5% VAT для Дубая
+        const baseAmount = Number(amount_aed);
+        const amountWithVat = Math.round(baseAmount * 1.05 * 100); // AED->fils с VAT
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
@@ -406,7 +408,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
                     quantity: 1,
                     price_data: {
                         currency: 'aed',
-                        unit_amount: unitAmount,
+                        unit_amount: amountWithVat,
                         product_data: {
                             name: productName
                         }
@@ -423,7 +425,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
                 trainer: trainer || '',
                 time: time || '',
                 date: date || '',
-                amount_aed: String(amount_aed)
+                amount_aed_no_vat: String(amount_aed),
+                vat_percent: '5',
+                amount_aed_with_vat: String(Math.round(baseAmount * 1.05))
             }
         });
 
