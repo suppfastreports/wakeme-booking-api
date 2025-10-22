@@ -78,7 +78,7 @@ const LOCATION_CONFIG = {
 };
 
 // ===== Helpers =====
-async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId }) {
+async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId, timezoneOffsetMinutes }) {
     const loc = LOCATION_CONFIG[location];
     if (!loc) {
         throw new Error('Unknown location');
@@ -101,7 +101,7 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
         return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00${sign}${offH}:${offM}`;
     }
 
-    const datetime = formatWithOffset(date, time, TIMEZONE_OFFSET_MINUTES);
+    const datetime = formatWithOffset(date, time, typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : TIMEZONE_OFFSET_MINUTES);
 
     // 1) Check params
     const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
@@ -122,15 +122,8 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
     }
 
     // 2) Create record
-    const recordResp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
-            'X-Partner-ID': ALTEGIO_PARTNER_ID,
-            'Accept': 'application/vnd.api.v2+json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+    async function requestCreate(withServices) {
+        const body = {
             phone,
             fullname: name,
             email: email || '',
@@ -138,15 +131,33 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             notify_by_sms: 6,
             notify_by_email: 0,
             api_id: apiId || undefined,
-            appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ]
-        })
-    });
-    const bodyText = await recordResp.text();
-    if (recordResp.status !== 201) {
-        throw new Error(`Altegio booking failed: ${bodyText}`);
+            appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
+        };
+        const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                'Accept': 'application/vnd.api.v2+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        const text = await resp.text();
+        return { resp, text };
+    }
+
+    // Try with services first, then fallback without services if Altegio complains about online payment list
+    let attempt = await requestCreate(true);
+    if (attempt.resp.status !== 201 && /online payment/i.test(attempt.text)) {
+        console.warn('⚠️ [ALTEGIO] Retry booking without services field due to online payment constraint');
+        attempt = await requestCreate(false);
+    }
+    if (attempt.resp.status !== 201) {
+        throw new Error(`Altegio booking failed: ${attempt.text}`);
     }
     let data;
-    try { data = JSON.parse(bodyText); } catch { data = { raw: bodyText }; }
+    try { data = JSON.parse(attempt.text); } catch { data = { raw: attempt.text }; }
     return data;
 }
 
@@ -676,7 +687,6 @@ app.post('/api/stripe/webhook', async (req, res) => {
             // Create booking in Altegio after successful payment
             try {
                 console.log('🗓️ [ALTEGIO] Создаём запись после оплаты...');
-                const tzOffset = Number(md.timezone_offset_minutes || TIMEZONE_OFFSET_MINUTES);
                 const booking = await createAltegioBooking({
                     location: md.location,
                     duration: Number(md.duration_minutes),
@@ -685,7 +695,8 @@ app.post('/api/stripe/webhook', async (req, res) => {
                     name: md.customer_name,
                     phone: md.customer_phone,
                     email: md.customer_email || '',
-                    apiId: session.id
+                    apiId: session.id,
+                    timezoneOffsetMinutes: Number(md.timezone_offset_minutes || TIMEZONE_OFFSET_MINUTES)
                 });
                 console.log('✅ [ALTEGIO] Запись создана:', booking);
             } catch (bookErr) {
