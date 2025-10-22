@@ -91,6 +91,12 @@ function buildAltegioHeaders(useUserToken) {
     }
     return base;
 }
+
+function maskToken(token) {
+    if (!token || typeof token !== 'string') return '';
+    if (token.length <= 10) return token;
+    return `${token.slice(0, 6)}...${token.slice(-4)}`;
+}
 async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId, paymentSumAed }) {
     const loc = LOCATION_CONFIG[location];
     if (!loc) {
@@ -123,8 +129,12 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
     // На check идём партнёрским токеном с X-Partner-ID
     const checkHeaders = buildAltegioHeaders(false);
     console.log('🔐 [ALTEGIO] Headers for check:', {
-        Authorization: 'partner_token',
+        Authorization: `Bearer ${maskToken(ALTEGIO_TOKEN)}`,
+        partnerId: ALTEGIO_PARTNER_ID || null,
         hasPartnerIdHeader: Boolean(checkHeaders['X-Partner-ID'] || false)
+    });
+    console.log('📦 [ALTEGIO] book_check payload:', {
+        appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ]
     });
     const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
         method: 'POST',
@@ -151,9 +161,10 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
         };
         // На создание записи идём с user_token (без X-Partner-ID)
-        async function postRecord(headers) {
+        async function postRecord(headers, usingUserToken) {
             console.log('🔐 [ALTEGIO] Headers for record:', {
-                Authorization: headers.Authorization?.startsWith('Bearer') && headers.Authorization.includes(ALTEGIO_USER_TOKEN) ? 'user_token' : 'partner_token',
+                Authorization: usingUserToken ? `Bearer ${maskToken(ALTEGIO_USER_TOKEN)}` : `Bearer ${maskToken(ALTEGIO_TOKEN)}`,
+                partnerId: headers['X-Partner-ID'] || null,
                 hasPartnerIdHeader: Boolean(headers['X-Partner-ID'] || false)
             });
             console.log('🕒 [ALTEGIO] Datetime to send:', datetime, 'serviceId:', serviceId, 'staffId:', staffId);
@@ -187,7 +198,7 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
         if (attempt.resp.status !== 201) {
             console.warn('⚠️ [ALTEGIO] Partner record failed, try with user_token');
             const recordHeaders = buildAltegioHeaders(useUserTokenForRecord);
-            attempt = await postRecord(recordHeaders);
+            attempt = await postRecord(recordHeaders, true);
         }
         return attempt;
     }
