@@ -117,10 +117,16 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
     const datetime = formatWithOffset(date, time, typeof timezoneOffsetMinutes === 'number' ? timezoneOffsetMinutes : TIMEZONE_OFFSET_MINUTES);
 
     const useUserToken = Boolean(ALTEGIO_USER_TOKEN);
+    console.log('🧭 [ALTEGIO] Token mode:', useUserToken ? 'user_token' : 'partner_token');
     // 1) Check params (с user_token не передаём X-Partner-ID)
+    const checkHeaders = buildAltegioHeaders(useUserToken);
+    console.log('🔐 [ALTEGIO] Headers for check:', {
+        Authorization: useUserToken ? 'user_token' : 'partner_token',
+        hasPartnerIdHeader: Boolean(checkHeaders['X-Partner-ID'] || false)
+    });
     const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
         method: 'POST',
-        headers: buildAltegioHeaders(useUserToken),
+        headers: checkHeaders,
         body: JSON.stringify({
             appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ]
         })
@@ -142,9 +148,15 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             api_id: apiId || undefined,
             appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
         };
+        const recordHeaders = buildAltegioHeaders(useUserToken);
+        console.log('🔐 [ALTEGIO] Headers for record:', {
+            Authorization: useUserToken ? 'user_token' : 'partner_token',
+            hasPartnerIdHeader: Boolean(recordHeaders['X-Partner-ID'] || false)
+        });
+        console.log('🕒 [ALTEGIO] Datetime to send:', datetime, 'serviceId:', serviceId, 'staffId:', staffId);
         const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
             method: 'POST',
-            headers: buildAltegioHeaders(useUserToken),
+            headers: recordHeaders,
             body: JSON.stringify(body)
         });
         const text = await resp.text();
