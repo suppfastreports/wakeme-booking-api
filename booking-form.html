@@ -1258,7 +1258,8 @@
                 time: bookingData.time,
                 date: bookingData.date,
                 amount_aed: amountAed,
-                return_url: window.location.href
+                return_url: window.location.href,
+                timezone_offset_minutes: new Date().getTimezoneOffset() * -1
             };
 
             // Клиентский лог

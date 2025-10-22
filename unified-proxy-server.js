@@ -51,6 +51,7 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
+const TIMEZONE_OFFSET_MINUTES = Number(process.env.TIMEZONE_OFFSET_MINUTES || '240'); // Dubai +04:00
 
 // Location/Service mapping (server mirror of frontend config)
 const LOCATION_CONFIG = {
@@ -88,7 +89,19 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
         throw new Error('Unknown service for duration');
     }
 
-    const datetime = new Date(`${date}T${time}:00`).toISOString();
+    // Формируем локальное время с фиксированным смещением (например, +04:00 для Дубая)
+    function formatWithOffset(dateStr, timeStr, offsetMinutes) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const sign = offsetMinutes >= 0 ? '+' : '-';
+        const abs = Math.abs(offsetMinutes);
+        const offH = String(Math.floor(abs / 60)).padStart(2, '0');
+        const offM = String(abs % 60).padStart(2, '0');
+        // Не конвертируем в UTC, оставляем локальное время с оффсетом
+        return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00${sign}${offH}:${offM}`;
+    }
+
+    const datetime = formatWithOffset(date, time, TIMEZONE_OFFSET_MINUTES);
 
     // 1) Check params
     const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
@@ -482,7 +495,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
             time,
             date,
             amount_aed,
-            return_url
+            return_url,
+            timezone_offset_minutes
         } = req.body || {};
 
         if (!amount_aed || !duration || !location) {
@@ -529,7 +543,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
                 date: date || '',
                 amount_aed_no_vat: String(baseAmount),
                 vat_percent: '5',
-                amount_aed_with_vat: String(Math.round(baseAmount * 1.05))
+                amount_aed_with_vat: String(Math.round(baseAmount * 1.05)),
+                timezone_offset_minutes: String(typeof timezone_offset_minutes === 'number' ? timezone_offset_minutes : TIMEZONE_OFFSET_MINUTES)
             }
         });
 
@@ -661,6 +676,7 @@ app.post('/api/stripe/webhook', async (req, res) => {
             // Create booking in Altegio after successful payment
             try {
                 console.log('🗓️ [ALTEGIO] Создаём запись после оплаты...');
+                const tzOffset = Number(md.timezone_offset_minutes || TIMEZONE_OFFSET_MINUTES);
                 const booking = await createAltegioBooking({
                     location: md.location,
                     duration: Number(md.duration_minutes),
