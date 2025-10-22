@@ -1257,7 +1257,8 @@
                 trainer: bookingData.trainer,
                 time: bookingData.time,
                 date: bookingData.date,
-                amount_aed: amountAed
+                amount_aed: amountAed,
+                return_url: window.location.href
             };
 
             // Клиентский лог
@@ -1569,7 +1570,6 @@
             calendarGrid.innerHTML = ''; // Очищаем перед показом скелета
             // Показываем скелет анимацию для календаря
             calendarGrid.innerHTML = `
-                <div class="calendar-date skeleton"></div>
                 <div class="calendar-date skeleton"></div>
                 <div class="calendar-date skeleton"></div>
                 <div class="calendar-date skeleton"></div>

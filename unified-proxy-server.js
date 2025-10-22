@@ -481,7 +481,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
             trainer,
             time,
             date,
-            amount_aed
+            amount_aed,
+            return_url
         } = req.body || {};
 
         if (!amount_aed || !duration || !location) {
@@ -492,6 +493,14 @@ app.post('/api/create-checkout-session', async (req, res) => {
         // amount_aed сейчас передаётся БЕЗ НДС, добавим 5% VAT для Дубая
         const baseAmount = Number(amount_aed);
         const amountWithVat = Math.round(baseAmount * 1.05 * 100); // AED->fils с VAT
+
+        // Формируем адрес возврата: либо из тела, либо из заголовка Referer, либо APP_URL
+        const referer = req.headers.referer || '';
+        const baseReturnUrl = (typeof return_url === 'string' && return_url.startsWith('http'))
+            ? return_url
+            : (referer && referer.startsWith('http') ? referer : `${APP_URL}/booking-form.html`);
+        const successUrl = `${baseReturnUrl}${baseReturnUrl.includes('?') ? '&' : '?'}paid=1&session_id={CHECKOUT_SESSION_ID}`;
+        const cancelUrl = `${baseReturnUrl}${baseReturnUrl.includes('?') ? '&' : '?'}canceled=1`;
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
@@ -508,8 +517,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
                     }
                 }
             ],
-            success_url: `${APP_URL}/booking-form.html?paid=1&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${APP_URL}/booking-form.html?canceled=1`,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
             metadata: {
                 customer_name: name || '',
                 customer_phone: phone || '',
