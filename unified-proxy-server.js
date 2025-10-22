@@ -123,8 +123,7 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
     // Всегда используем таймзону компании (Дубай +04:00)
     const datetime = formatWithOffset(date, time, TIMEZONE_OFFSET_MINUTES);
 
-    const useUserTokenForRecord = Boolean(ALTEGIO_USER_TOKEN);
-    console.log('🧭 [ALTEGIO] Token mode (check -> record):', 'partner_token', '->', useUserTokenForRecord ? 'user_token' : 'partner_token');
+    console.log('🧭 [ALTEGIO] Token mode (check -> record):', 'partner_token', '->', 'partner_token');
     // 1) Check params (с user_token не передаём X-Partner-ID)
     // На check идём партнёрским токеном с X-Partner-ID
     const checkHeaders = buildAltegioHeaders(false);
@@ -161,46 +160,21 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
         };
         // На создание записи идём с user_token (без X-Partner-ID)
-        async function postRecord(headers, usingUserToken) {
-            console.log('🔐 [ALTEGIO] Headers for record:', {
-                Authorization: usingUserToken ? `Bearer ${maskToken(ALTEGIO_USER_TOKEN)}` : `Bearer ${maskToken(ALTEGIO_TOKEN)}`,
-                partnerId: headers['X-Partner-ID'] || null,
-                hasPartnerIdHeader: Boolean(headers['X-Partner-ID'] || false)
-            });
-            console.log('🕒 [ALTEGIO] Datetime to send:', datetime, 'serviceId:', serviceId, 'staffId:', staffId);
-            const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(body)
-            });
-            const text = await resp.text();
-            return { resp, text };
-        }
-
-        // Попытка 1: партнёрский токен c prepaid признаками, чтобы пройти «обязательную предоплату»
+        // Партнёрский токен c prepaid признаками, чтобы пройти «обязательную предоплату»
         const partnerHeaders = buildAltegioHeaders(false);
         const partnerBody = {
             ...body,
             payment_sum: typeof paymentSumAed === 'number' ? paymentSumAed : undefined,
             prepaid_confirmed: true
         };
-        let attempt = await (async () => {
-            const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
-                method: 'POST',
-                headers: partnerHeaders,
-                body: JSON.stringify(partnerBody)
-            });
-            const text = await resp.text();
-            return { resp, text };
-        })();
-
-        // Если не удалось — попытка 2: user_token (админ)
-        if (attempt.resp.status !== 201) {
-            console.warn('⚠️ [ALTEGIO] Partner record failed, try with user_token');
-            const recordHeaders = buildAltegioHeaders(useUserTokenForRecord);
-            attempt = await postRecord(recordHeaders, true);
-        }
-        return attempt;
+        const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
+            method: 'POST',
+            headers: partnerHeaders,
+            body: JSON.stringify(partnerBody)
+        });
+        const text = await resp.text();
+        console.log('📨 [ALTEGIO] Partner record response:', resp.status, text);
+        return { resp, text };
     }
 
     // Try with services first, then fallback without services if Altegio complains about online payment list
