@@ -504,20 +504,32 @@ app.get('/api/all-services', async (req, res) => {
 
         // Форматируем данные для удобного отображения
         if (data && data.data && Array.isArray(data.data)) {
-            const formattedServices = data.data.map(service => ({
-                id: service.id,
-                name: service.name || service.title || service.attributes?.name || 'Без названия',
-                duration: service.duration || service.attributes?.duration || service.duration_minutes || 'Не указано',
-                price: service.price || service.attributes?.price || service.cost || 'Не указано',
-                description: service.description || service.attributes?.description || '',
-                active: service.active !== false ? '✅' : '❌',
-                category: service.category || service.attributes?.category || 'Без категории',
-                staff_id: service.staff_id || service.attributes?.staff_id || service.staffId || 'Не указан',
-                created_at: service.created_at || service.attributes?.created_at || '',
-                updated_at: service.updated_at || service.attributes?.updated_at || '',
-                // Дополнительные поля для отладки
-                raw_service: service // Полный объект услуги для анализа
-            }));
+            const formattedServices = data.data.map(service => {
+                // Собираем ВСЕ поля из объекта услуги
+                const allFields = {};
+                
+                // Рекурсивно обходим все поля объекта
+                function extractFields(obj, prefix = '') {
+                    for (const [key, value] of Object.entries(obj)) {
+                        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                            // Если это объект, рекурсивно обходим его поля
+                            extractFields(value, prefix + key + '_');
+                        } else {
+                            // Простое поле - добавляем его
+                            allFields[prefix + key] = value;
+                        }
+                    }
+                }
+                
+                extractFields(service);
+                
+                // Добавляем основные поля для удобства
+                allFields.id = service.id;
+                allFields.name = service.name || service.title || service.attributes?.name || 'Без названия';
+                allFields.active = service.active !== false ? '✅' : '❌';
+                
+                return allFields;
+            });
 
             console.log(`📊 [ALTEGIO] Найдено услуг: ${formattedServices.length}`);
             
