@@ -1709,6 +1709,45 @@
                 overlay.addEventListener('click', onCloseOverlay);
                 document.getElementById('paymentCloseBtn')?.addEventListener('click', onCloseBtn);
             });
+            
+            // --- SAFE REFRESH HOOKS ---
+            try {
+                // Явный рефреш на загрузке, чтобы гарантированно получить даты/слоты
+                setTimeout(() => {
+                    try {
+                        const selectedLocation = getSelectedLocation();
+                        const selectedDuration = getSelectedDuration();
+                        const selectedTrainer = getSelectedTrainer();
+                        const staffId = getStaffIdForLocation(selectedLocation);
+                        const serviceId = (typeof getServiceIdForLocation === 'function')
+                            ? getServiceIdForLocation(selectedLocation, selectedDuration, selectedTrainer)
+                            : undefined;
+                        console.log('[SAFE_REFRESH] init', { selectedLocation, selectedDuration, selectedTrainer, staffId, serviceId });
+                    } catch (_) {}
+                }, 0);
+
+                const safeRefresh = () => {
+                    try {
+                        const locationKey = getSelectedLocation();
+                        const durationId = getSelectedDuration();
+                        const trainer = getSelectedTrainer();
+                        const staffId = getStaffIdForLocation(locationKey);
+                        const serviceId = (typeof getServiceIdForLocation === 'function')
+                            ? getServiceIdForLocation(locationKey, durationId, trainer)
+                            : undefined;
+                        console.log('[SAFE_REFRESH] click', { locationKey, durationId, trainer, staffId, serviceId });
+                        // Явно дергаем загрузку доступности (без ожидания других слоёв UI)
+                        fetch(`${API_CONFIG.proxyUrl}/api/availability`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ service_id: serviceId, start_date: new Date().toISOString().split('T')[0], end_date: new Date(Date.now()+31*864e5).toISOString().split('T')[0] })
+                        }).catch(() => {});
+                    } catch (_) {}
+                };
+                document.querySelectorAll('.location-btn, .duration-option, .trainer-btn').forEach(btn => {
+                    btn.addEventListener('click', () => setTimeout(safeRefresh, 0), { passive: true });
+                });
+            } catch (_) {}
         });
 
         // Calendar variables
