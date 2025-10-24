@@ -312,68 +312,97 @@ app.post('/api/availability', async (req, res) => {
             staffId = 2742288; // Default
         }
 
-        // Генерируем даты между start_date и end_date
-        const allDates = [];
-        const start = new Date(start_date);
-        const end = new Date(end_date);
-        
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            allDates.push(d.toISOString().split('T')[0]);
+        // Сначала попробуем быстрый способ: book_staff_seances (даёт список сеансов со временем)
+        const seancesUrl = `${ALTEGIO_BASE_URL}/book_staff_seances/${ALTEGIO_COMPANY_ID}/${staffId}/?service_ids[]=${service_id}`;
+        console.log('🔗 [ALTEGIO] book_staff_seances URL:', seancesUrl);
+        const availableDates = [];
+        try {
+            const resp = await fetch(seancesUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                    'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                    'Accept': 'application/vnd.api.v2+json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const inside = new Set();
+                if (data && Array.isArray(data.data)) {
+                    const startMs = new Date(start_date).getTime();
+                    const endMs = new Date(end_date).getTime();
+                    for (const item of data.data) {
+                        const iso = item?.seance_date || item?.date;
+                        if (!iso) continue;
+                        const day = String(iso).split('T')[0];
+                        const ts = new Date(day).getTime();
+                        if (!Number.isNaN(ts) && ts >= startMs && ts <= endMs) {
+                            inside.add(day);
+                        }
+                    }
+                }
+                availableDates.push(...Array.from(inside).sort());
+                console.log('📊 [ALTEGIO] Доступные даты по seances:', availableDates);
+            } else {
+                console.log('⚠️ [ALTEGIO] book_staff_seances вернул', resp.status);
+            }
+        } catch (e) {
+            console.log('⚠️ [ALTEGIO] Ошибка book_staff_seances:', e.message);
         }
 
-        console.log('📊 [ALTEGIO] Проверяем доступность для дат:', allDates);
+        // Если по seances пусто — делаем точечную проверку по дням через book_times
+        if (availableDates.length === 0) {
+            // Генерируем даты между start_date и end_date
+            const allDates = [];
+            const start = new Date(start_date);
+            const end = new Date(end_date);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                allDates.push(d.toISOString().split('T')[0]);
+            }
+            console.log('📊 [ALTEGIO] Проверяем доступность по дням:', allDates);
 
-        // Проверяем реальную доступность каждой даты с ограничением параллелизма
-        const availableDates = [];
-        const concurrency = 6; // мягкий лимит параллельных запросов
-
-        async function checkDate(date) {
-            const apiUrl = `${ALTEGIO_BASE_URL}/book_times/${ALTEGIO_COMPANY_ID}/${staffId}/${date}?service_ids[]=${service_id}`;
-            console.log('🔗 [ALTEGIO] book_times URL:', apiUrl);
-            try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 7000);
-                const response = await fetch(apiUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
-                        'X-Partner-ID': ALTEGIO_PARTNER_ID,
-                        'Accept': 'application/vnd.api.v2+json',
-                        'Content-Type': 'application/json'
-                    },
-                    signal: controller.signal
-                });
-                clearTimeout(timeout);
-                if (!response.ok) {
-                    console.log(`❌ [ALTEGIO] Дата ${date} недоступна (ошибка API: ${response.status})`);
-                    return;
+            const concurrency = 6;
+            async function checkDate(date) {
+                const apiUrl = `${ALTEGIO_BASE_URL}/book_times/${ALTEGIO_COMPANY_ID}/${staffId}/${date}?service_ids[]=${service_id}`;
+                console.log('🔗 [ALTEGIO] book_times URL:', apiUrl);
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 7000);
+                    const response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                            'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                            'Accept': 'application/vnd.api.v2+json',
+                            'Content-Type': 'application/json'
+                        },
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeout);
+                    if (!response.ok) {
+                        console.log(`❌ [ALTEGIO] Дата ${date} недоступна (ошибка API: ${response.status})`);
+                        return;
+                    }
+                    const data = await response.json();
+                    if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+                        availableDates.push(date);
+                        console.log(`✅ [ALTEGIO] Дата ${date} доступна (${data.data.length} слотов)`);
+                    } else {
+                        console.log(`❌ [ALTEGIO] Дата ${date} недоступна (нет слотов)`);
+                    }
+                } catch (error) {
+                    console.log(`❌ [ALTEGIO] Ошибка проверки даты ${date}:`, error.message);
                 }
-                const data = await response.json();
-                if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-                    availableDates.push(date);
-                    console.log(`✅ [ALTEGIO] Дата ${date} доступна (${data.data.length} слотов)`);
-                } else {
-                    console.log(`❌ [ALTEGIO] Дата ${date} недоступна (нет слотов)`);
-                }
-            } catch (error) {
-                console.log(`❌ [ALTEGIO] Ошибка проверки даты ${date}:`, error.message);
+            }
+            for (let i = 0; i < allDates.length; i += concurrency) {
+                const batch = allDates.slice(i, i + concurrency);
+                await Promise.allSettled(batch.map(checkDate));
             }
         }
 
-        // Параллельная обработка батчами
-        for (let i = 0; i < allDates.length; i += concurrency) {
-            const batch = allDates.slice(i, i + concurrency);
-            await Promise.allSettled(batch.map(checkDate));
-        }
-
-        console.log('📊 [ALTEGIO] Доступные даты:', availableDates);
-
-        res.json({
-            available_dates: availableDates,
-            service_id: service_id,
-            start_date: start_date,
-            end_date: end_date
-        });
+        console.log('📊 [ALTEGIO] Доступные даты (итог):', availableDates);
+        res.json({ available_dates: availableDates, service_id, start_date, end_date });
 
     } catch (error) {
         console.error('❌ [ALTEGIO] Ошибка получения доступности:', error);
