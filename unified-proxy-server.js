@@ -97,7 +97,7 @@ function maskToken(token) {
     if (token.length <= 10) return token;
     return `${token.slice(0, 6)}...${token.slice(-4)}`;
 }
-async function createAltegioBooking({ location, duration, date, time, name, phone, email, apiId, paymentSumAed }) {
+async function createAltegioBooking({ location, duration, date, time, name, phone, phoneMasked, email, apiId, paymentSumAed }) {
     const loc = LOCATION_CONFIG[location];
     if (!loc) {
         throw new Error('Unknown location');
@@ -158,7 +158,7 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             notify_by_sms: 6,
             notify_by_email: 0,
             api_id: apiId || undefined,
-            comment: 'Оплачено через сайт',
+            comment: `Оплачено через сайт${phoneMasked ? ` — ${phoneMasked}` : ''}`,
             appointments: [ withServices ? { id: 1, services: [serviceId], staff_id: staffId, datetime } : { id: 1, staff_id: staffId, datetime } ]
         };
         // На создание записи идём с user_token (без X-Partner-ID)
@@ -458,6 +458,136 @@ app.get('/api/nearest-slots', async (req, res) => {
     }
 });
 
+// ===== ALTEGIO SERVICES =====
+
+// Get all services for a company/branch
+app.get('/api/all-services', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    try {
+        console.log('📥 [ALTEGIO] Получен запрос всех услуг компании');
+
+        // Запрашиваем все услуги компании через Altegio API
+        const apiUrl = `${ALTEGIO_BASE_URL}/services/${ALTEGIO_COMPANY_ID}`;
+        
+        console.log('🔗 [ALTEGIO] URL для получения услуг:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                'Accept': 'application/vnd.api.v2+json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log(`📥 [ALTEGIO] Ответ: ${response.status} ${response.statusText}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ [ALTEGIO] Ошибка API для получения услуг:', errorText);
+            return res.status(response.status).json({ error: errorText });
+        }
+
+        const data = await response.json();
+        console.log('📄 [ALTEGIO] Все услуги получены успешно');
+
+        // Форматируем данные для удобного отображения
+        if (data && data.data && Array.isArray(data.data)) {
+            const formattedServices = data.data.map(service => ({
+                id: service.id,
+                name: service.name || service.title || 'Без названия',
+                duration: service.duration || 'Не указано',
+                price: service.price || 'Не указано',
+                description: service.description || '',
+                active: service.active !== false ? '✅' : '❌',
+                category: service.category || 'Без категории',
+                staff_id: service.staff_id || 'Не указан',
+                created_at: service.created_at || '',
+                updated_at: service.updated_at || ''
+            }));
+
+            console.log(`📊 [ALTEGIO] Найдено услуг: ${formattedServices.length}`);
+            
+            res.json({
+                success: true,
+                total: formattedServices.length,
+                services: formattedServices,
+                raw_data: data // Полные данные для отладки
+            });
+        } else {
+            console.log('⚠️ [ALTEGIO] Неожиданный формат ответа от API');
+            res.json({
+                success: true,
+                total: 0,
+                services: [],
+                raw_data: data
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [ALTEGIO] Ошибка получения услуг:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get services by staff (employee)
+app.get('/api/services-by-staff', async (req, res) => {
+    // CORS заголовки
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    try {
+        const { staffId } = req.query;
+        
+        if (!staffId) {
+            return res.status(400).json({ error: 'staffId is required' });
+        }
+
+        console.log('📥 [ALTEGIO] Получен запрос услуг по сотруднику:', { staffId });
+
+        // Запрашиваем услуги конкретного сотрудника
+        const apiUrl = `${ALTEGIO_BASE_URL}/staff/${staffId}/services`;
+        
+        console.log('🔗 [ALTEGIO] URL для услуг сотрудника:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${ALTEGIO_TOKEN}`,
+                'X-Partner-ID': ALTEGIO_PARTNER_ID,
+                'Accept': 'application/vnd.api.v2+json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log(`📥 [ALTEGIO] Ответ: ${response.status} ${response.statusText}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ [ALTEGIO] Ошибка API для услуг сотрудника:', errorText);
+            return res.status(response.status).json({ error: errorText });
+        }
+
+        const data = await response.json();
+        console.log('📄 [ALTEGIO] Услуги сотрудника получены успешно');
+
+        res.json({
+            success: true,
+            staff_id: staffId,
+            services: data.data || [],
+            raw_data: data
+        });
+
+    } catch (error) {
+        console.error('❌ [ALTEGIO] Ошибка получения услуг сотрудника:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ===== HEALTH CHECK =====
 
 // Health check endpoint
@@ -573,6 +703,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
         const {
             name,
             phone,
+            phone_masked,
             location,
             duration,
             trainer,
@@ -620,6 +751,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             metadata: {
                 customer_name: name || '',
                 customer_phone: phone || '',
+                customer_phone_masked: phone_masked || '',
                 location,
                 duration_minutes: String(duration || ''),
                 trainer: trainer === 'with' ? 'with_coach' : 'without_coach',
@@ -789,7 +921,13 @@ app.post('/api/stripe/webhook', async (req, res) => {
             const md = session.metadata || {};
             const amountAed = md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100);
 
-            const message = `*Оплаченная бронь WakeMe*\n\n*Клиент:* ${md.customer_name || '-'}\n*Телефон:* ${md.customer_phone || '-'}\n*Локация:* ${md.location || '-'}\n*Длительность:* ${md.duration_minutes || '-'} мин\n*Тренер:* ${md.trainer === 'with_coach' ? 'С тренером' : 'Без тренера'}\n*Время:* ${md.time || '-'}\n*Стоимость:* ${md.amount_aed_with_vat || amountAed} AED (с VAT)\n*Дата:* ${md.date || '-'}\n*Stripe:* ${session.id}`;
+            // Номер телефона в маске вида "+код номер". Если не пришло, попробуем восстановить из raw + метаданных
+            let phoneMasked = md.customer_phone_masked || '';
+            if (!phoneMasked) {
+                // Если customer_phone уже содержит код и плюс, оставим как есть, иначе добавлять нечего
+                phoneMasked = md.customer_phone || '';
+            }
+            const message = `*Оплаченная бронь WakeMe*\n\n*Клиент:* ${md.customer_name || '-'}\n*Телефон:* ${phoneMasked || '-'}\n*Локация:* ${md.location || '-'}\n*Длительность:* ${md.duration_minutes || '-'} мин\n*Тренер:* ${md.trainer === 'with_coach' ? 'С тренером' : 'Без тренера'}\n*Время:* ${md.time || '-'}\n*Стоимость:* ${md.amount_aed_with_vat || amountAed} AED (с VAT)\n*Дата:* ${md.date || '-'}\n*Stripe:* ${session.id}`;
 
             try {
                 const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -816,6 +954,7 @@ app.post('/api/stripe/webhook', async (req, res) => {
                     time: md.time,
                     name: md.customer_name,
                     phone: md.customer_phone,
+                    phoneMasked: md.customer_phone_masked,
                     email: md.customer_email || '',
                     apiId: session.id,
                     paymentSumAed: Number(md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100))
@@ -831,13 +970,13 @@ app.post('/api/stripe/webhook', async (req, res) => {
                         const payRes = await addAltegioPayment({
                             recordId,
                             amountAed: paidAmount,
-                            comment: `Оплачено через сайт (Stripe ${session.id})`
+                            comment: `Оплачено через сайт (Stripe ${session.id})${md.customer_phone_masked ? ` — ${md.customer_phone_masked}` : ''}`
                         });
                         console.log('💸 [ALTEGIO] Оплата добавлена к визиту:', payRes);
                     } catch (payErr) {
                         console.error('❌ [ALTEGIO] Не удалось добавить оплату к визиту:', payErr);
                         try {
-                            const mark = await markAltegioPrepaid({ recordId, comment: `Оплачено через сайт (Stripe ${session.id})` });
+                            const mark = await markAltegioPrepaid({ recordId, comment: `Оплачено через сайт (Stripe ${session.id})${md.customer_phone_masked ? ` — ${md.customer_phone_masked}` : ''}` });
                             console.log('✅ [ALTEGIO] Отметили визит как предоплаченный:', mark);
                         } catch (markErr) {
                             console.error('❌ [ALTEGIO] Не удалось отметить визит как предоплаченный:', markErr);
@@ -880,6 +1019,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('📊 Доступные эндпоинты:');
     console.log('  • GET  /api/slots - получение слотов ALTEGIO');
     console.log('  • GET  /api/nearest-slots - ближайшие слоты ALTEGIO');
+    console.log('  • GET  /api/all-services - ВСЕ услуги компании ALTEGIO');
+    console.log('  • GET  /api/services-by-staff - услуги по сотруднику ALTEGIO');
     console.log('  • POST /api/send-telegram - отправка в Telegram');
     console.log('  • GET  /api/health - проверка состояния');
 }).on('error', (err) => {
