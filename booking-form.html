@@ -2694,6 +2694,50 @@
                 `;
             }
         });
+
+        // ===== NETWORK GUARD: FORCE CORRECT serviceId/staffId ON API CALLS =====
+        try {
+            if (!window.__wmFetchPatched__) {
+                window.__wmFetchPatched__ = true;
+                const API_BASE = API_CONFIG.proxyUrl;
+                const origFetch = window.fetch.bind(window);
+
+                window.fetch = async function(input, init = {}) {
+                    try {
+                        const url = typeof input === 'string' ? input : (input && input.url) || '';
+                        const isOur = typeof url === 'string' && url.startsWith(API_BASE);
+                        const isAvail = isOur && url.includes('/api/availability');
+                        const isSlots = isOur && url.includes('/api/slots');
+
+                        if (isAvail || isSlots) {
+                            const locationKey = getSelectedLocation();
+                            const durationId = getSelectedDuration();
+                            const trainer = getSelectedTrainer();
+                            const staffId = getStaffIdForLocation(locationKey);
+                            const serviceId = getServiceIdForLocation(locationKey, durationId, trainer);
+
+                            if (isAvail && init && typeof init.body === 'string') {
+                                const body = JSON.parse(init.body || '{}');
+                                body.service_id = serviceId;
+                                init.body = JSON.stringify(body);
+                                console.log('[PATCH] availability body fixed →', body);
+                            }
+
+                            if (isSlots) {
+                                const u = new URL(url);
+                                u.searchParams.set('serviceId', String(serviceId));
+                                u.searchParams.set('staffId', String(staffId));
+                                input = u.toString();
+                                console.log('[PATCH] slots url fixed →', input);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[PATCH] fetch adjust failed:', e);
+                    }
+                    return origFetch(input, init);
+                };
+            }
+        } catch (_) {}
     </script>
 </body>
 </html>

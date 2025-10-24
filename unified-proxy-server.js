@@ -287,6 +287,8 @@ app.post('/api/availability', async (req, res) => {
         const { service_id, start_date, end_date } = req.body;
 
         console.log('📥 [ALTEGIO] Получен запрос доступности:', { service_id, start_date, end_date });
+        // Диагностика соответствия service_id -> staffId
+        console.log('🔎 [ALTEGIO] Mapping service_id → staffId (diagnostic)');
 
         // Получаем staff_id из service_id (поддерживаем НОВЫЕ и СТАРЫЕ ID для обратной совместимости)
         let staffId;
@@ -327,6 +329,7 @@ app.post('/api/availability', async (req, res) => {
 
         async function checkDate(date) {
             const apiUrl = `${ALTEGIO_BASE_URL}/book_times/${ALTEGIO_COMPANY_ID}/${staffId}/${date}?service_ids[]=${service_id}`;
+            console.log('🔗 [ALTEGIO] book_times URL:', apiUrl);
             try {
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 7000);
