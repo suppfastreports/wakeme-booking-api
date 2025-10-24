@@ -385,7 +385,16 @@ app.get('/api/slots', async (req, res) => {
     res.header('Access-Control-Allow-Credentials', 'true');
     
     try {
-        const { companyId, staffId, serviceId, date } = req.query;
+        let { companyId, staffId, serviceId, date } = req.query;
+
+        // Автокоррекция staffId по serviceId (защита от неверного фронта)
+        const harbourServices = new Set([13070888,13070889,13070890,13070891,13070892,13070896,13070899,13070900,13070905,13070908,12199769,12952120,12200654,12200653,12203754]);
+        const creekServices = new Set([13070912,13070913,13070914,13070915,13070916,13070917,13070918,13070919,13070920,13070921,12396457,12952179,12396432,12396453,12396454]);
+        const sidNum = Number(serviceId);
+        let staffNum = Number(staffId);
+        if (harbourServices.has(sidNum)) staffNum = 2742288;
+        if (creekServices.has(sidNum)) staffNum = 2780637;
+        staffId = String(staffNum);
 
         console.log('📥 [ALTEGIO] Получен запрос слотов:', { companyId, staffId, serviceId, date });
 
@@ -461,7 +470,16 @@ app.get('/api/nearest-slots', async (req, res) => {
     res.header('Access-Control-Allow-Credentials', 'true');
     
     try {
-        const { companyId, staffId, serviceId } = req.query;
+        let { companyId, staffId, serviceId } = req.query;
+
+        // Автокоррекция staffId по serviceId (защита от неверного фронта)
+        const harbourServices = new Set([13070888,13070889,13070890,13070891,13070892,13070896,13070899,13070900,13070905,13070908,12199769,12952120,12200654,12200653,12203754]);
+        const creekServices = new Set([13070912,13070913,13070914,13070915,13070916,13070917,13070918,13070919,13070920,13070921,12396457,12952179,12396432,12396453,12396454]);
+        const sidNum = Number(serviceId);
+        let staffNum = Number(staffId);
+        if (harbourServices.has(sidNum)) staffNum = 2742288;
+        if (creekServices.has(sidNum)) staffNum = 2780637;
+        staffId = String(staffNum);
 
         console.log('📥 [ALTEGIO] Получен запрос ближайших слотов:', { companyId, staffId, serviceId });
 
