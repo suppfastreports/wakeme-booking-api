@@ -28,12 +28,25 @@
             padding: 0;
             outline: none;
             border: none;
+            overflow-x: hidden; /* предотвращаем горизонтальный скролл на мобайле */
         }
 
         /* Phone UI fallback */
         .phone-row { display: flex; gap: 8px; align-items: center; }
         .phone-code-select { height: 42px; border: 1px solid #e9ecef; border-radius: 8px; padding: 0 8px; background: #fff; }
         .phone-code-badge { min-width: 70px; height: 42px; display: flex; align-items: center; justify-content: center; background: #f1f3f5; border-radius: 8px; font-size: 14px; color: #333; }
+
+        /* Custom phone control */
+        .phone-input { position: relative; display: flex; align-items: center; gap: 0; width: 100%; height: 48px; background: #fff; border: 1px solid #e9ecef; border-radius: 8px; overflow: visible; }
+        .phone-select { display: flex; align-items: center; gap: 6px; padding: 0 12px; cursor: pointer; user-select: none; background: #fff; height: 100%; border-right: 1px solid #e9ecef; }
+        .phone-select-code { font-weight: 500; color: #2c2c2c; }
+        .phone-caret { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #999; }
+        .phone-dropdown { position: absolute; top: 50px; left: 0; right: 0; max-height: 260px; overflow: auto; background: #fff; border: 1px solid #e9ecef; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); z-index: 1000; display: none; }
+        .phone-dropdown.show { display: block; }
+        .phone-item { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; cursor: pointer; }
+        .phone-item:hover { background: #f8f9fa; }
+        .phone-input .form-input { border: none !important; height: 100%; margin: 0; }
+        .phone-select:hover { background: #f8f9fa; }
 
         .container {
             max-width: 1200px;
@@ -271,7 +284,7 @@
             flex: 1;
             width: 100%;
             min-height: 60px;
-            color: #64D7F2;
+            color: #2c2c2c; /* заголовок чёрный в неактивном состоянии */
         }
 
         .trainer-btn span { white-space: nowrap; }
@@ -330,6 +343,8 @@
             position: fixed;
             top: 0;
             left: 0;
+            right: 0;
+            bottom: 0;
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
@@ -340,6 +355,7 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
+            padding: 16px; /* небольшое поле, чтобы модалка не упиралась в края */
         }
 
         .popup-overlay.show {
@@ -351,12 +367,13 @@
             background: white;
             border-radius: 16px;
             padding: 32px;
-            max-width: 400px;
-            width: 90%;
+            max-width: 420px;
+            width: 100%;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
             transform: scale(0.9);
             transition: transform 0.3s ease;
+            position: relative;
         }
 
         .popup-overlay.show .popup {
@@ -417,6 +434,13 @@
         .popup-button:hover {
             background: #4BC5E8;
         }
+        .popup-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .popup-button.outline { background: #fff; color: #333; border: 1px solid #e9ecef; }
+        .popup-button.whatsapp { background: #25D366; }
+        .popup-button.whatsapp:hover { background: #1ebe57; }
+        .btn-icon { display: inline-flex; width: 16px; height: 16px; margin-right: 8px; align-items: center; justify-content: center; }
+        .popup-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 50%; background: #f1f3f5; border: 1px solid #e9ecef; cursor: pointer; color: #666; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .popup-close:hover { background: #eceff1; }
 
         .booking-form form {
             display: flex;
@@ -798,10 +822,14 @@
                 padding: 0 5%;
                 max-width: 90%;
             }
+            .popup { max-width: 520px; width: 100%; }
+            .popup-overlay { padding: 12px; }
             
             .main-content {
                 grid-template-columns: 1fr;
                 gap: 20px;
+                display: flex; /* на мобайле используем flex для управления порядком */
+                flex-direction: column;
             }
 
             .location-section,
@@ -810,6 +838,12 @@
             .time-section {
                 grid-column: 1;
             }
+
+            /* Переупорядочивание блоков на мобайле: сначала услуги, потом календарь */
+            .location-section { order: 1; }
+            .service-section { order: 2; }
+            .calendar-section { order: 3; }
+            .time-section { order: 4; }
             
             /* Секция времени теперь работает с реальным API */
 
@@ -823,15 +857,19 @@
 
             .booking-form form {
                 flex-direction: column;
-                gap: 16px;
-                align-items: center;
+                gap: 0; /* контролируем отступы отдельно */
+                align-items: stretch;
             }
 
             .form-group {
-                margin-bottom: 16px;
+                margin-bottom: 0;
                 min-width: auto;
                 width: 100%;
             }
+            /* Отступ между именем и телефоном — ~в 3 раза меньше (6px) */
+            .booking-form .form-group + .form-group { margin-top: 6px; }
+            /* Отступ между телефоном и кнопкой — 8px + дополнительным запросом +10px = 18px */
+            .booking-form .booking-btn { margin-top: 18px; }
 
             .booking-btn {
                 min-width: auto;
@@ -975,9 +1013,30 @@
         </div>
     </div>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/css/intlTelInput.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/intlTelInput.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js"></script>
+    <!-- Payment choice Popup -->
+    <div class="popup-overlay" id="paymentChoiceOverlay">
+        <div class="popup">
+            <button class="popup-close" id="paymentCloseBtn" aria-label="Закрыть">×</button>
+            <div class="popup-title">Выберите способ оплаты</div>
+            <div class="popup-message">Оплатите сейчас картой на сайте или свяжитесь с менеджером в WhatsApp.</div>
+            <div class="popup-actions">
+                <button class="popup-button" id="payCardBtn">
+                    <span class="btn-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 5h18a2 2 0 0 1 2 2v2H1V7a2 2 0 0 1 2-2zm-2 8h22v4a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-4zm4 3h4v-2H5v2z"/></svg>
+                    </span>
+                    Оплатить картой на сайте
+                </button>
+                <button class="popup-button outline whatsapp" id="payLaterBtn">
+                    <span class="btn-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.52 3.48A11.86 11.86 0 0 0 12.05 0C5.49 0 .22 5.27.22 11.83c0 2.09.55 4.14 1.59 5.94L0 24l6.4-1.67a11.78 11.78 0 0 0 5.64 1.44h.01c6.56 0 11.83-5.27 11.83-11.83a11.8 11.8 0 0 0-3.36-8.46zM12.05 21.1h-.01a9.26 9.26 0 0 1-4.72-1.29l-.34-.2-3.8.99 1.02-3.7-.22-.38a9.25 9.25 0 0 1-1.4-4.89c0-5.1 4.15-9.25 9.26-9.25a9.2 9.2 0 0 1 6.55 2.71 9.22 9.22 0 0 1 2.7 6.54c0 5.1-4.15 9.25-9.25 9.25zm5.1-6.98c-.28-.14-1.66-.82-1.92-.91-.26-.1-.45-.14-.64.14s-.74.91-.91 1.09c-.17.18-.34.2-.62.07-.28-.14-1.17-.43-2.24-1.36-.83-.74-1.39-1.65-1.55-1.93-.16-.28-.02-.43.12-.57.12-.12.28-.31.41-.46.14-.15.18-.26.27-.43.09-.18.05-.32-.02-.46-.07-.14-.64-1.55-.88-2.12-.23-.56-.47-.49-.64-.5l-.54-.01c-.18 0-.46.07-.7.32s-.92.9-.92 2.2 1.13 2.55 1.29 2.73c.16.18 2.22 3.39 5.38 4.75.75.32 1.33.51 1.78.65.75.24 1.42.21 1.96.13.6-.09 1.66-.68 1.9-1.34.24-.66.24-1.23.17-1.34-.07-.11-.26-.18-.54-.32z"/></svg>
+                    </span>
+                    Оплатить позже с менеджером
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- intl-tel-input отключён: используем кастомный селектор кода страны без флагов -->
 
     <script>
         // API Configuration
@@ -988,21 +1047,39 @@
                 'DUBAI_HARBOUR_MARINA': {
                     staffId: 2742288,
                     services: {
-                        30: 12199769,   // 30 MIN (+20 min of mooring)
-                        45: 12952120,   // 45 MIN (+20 min of mooring)
-                        60: 12200654,   // 60 MIN (+20 min of mooring)
-                        90: 12200653,   // 90 MIN (+20 min of mooring)
-                        120: 12203754   // 120 MIN (+20 min of mooring)
+                        without: {
+                            30: 13070888,
+                            45: 13070889,
+                            60: 13070890,
+                            90: 13070891,
+                            120: 13070892
+                        },
+                        with: {
+                            30: 13070896,
+                            45: 13070899,
+                            60: 13070900,
+                            90: 13070905,
+                            120: 13070908
+                        }
                     }
                 },
                 'DUBAI_CREEK_HARBOUR': {
                     staffId: 2780637,
                     services: {
-                        30: 12396457,   // 30 MIN + COACH (+10 min of mooring)
-                        45: 12952179,   // 45 MIN + COACH (+10 min of mooring)
-                        60: 12396432,   // 60 MIN + COACH (+10 min of mooring)
-                        90: 12396453,   // 90 MIN + COACH (+10 min of mooring)
-                        120: 12396454   // 120 MIN + COACH (+10 min of mooring)
+                        without: {
+                            30: 13070912,
+                            45: 13070913,
+                            60: 13070914,
+                            90: 13070915,
+                            120: 13070916
+                        },
+                        with: {
+                            30: 13070917,
+                            45: 13070918,
+                            60: 13070919,
+                            90: 13070920,
+                            120: 13070921
+                        }
                     }
                 }
             }
@@ -1089,26 +1166,20 @@
 
         // Загрузить ближайшие доступные даты для всех локаций и услуг
         async function loadNearestAvailableDates() {
-            
+            // Загружаем для варианта "с тренером" как более ограничивающего
+            const durations = Object.keys(PRICES);
             for (const locationKey of Object.keys(API_CONFIG.locations)) {
-                
-                for (const duration of Object.keys(API_CONFIG.locations[locationKey].services)) {
-                    const serviceId = API_CONFIG.locations[locationKey].services[duration];
+                for (const duration of durations) {
+                    const serviceId = getServiceIdForLocation(locationKey, Number(duration), 'with');
                     const cacheKey = `${locationKey}_${duration}`;
-                    
-                    
                     try {
                         const data = await getNearestAvailableSlots(locationKey, serviceId);
-                        
                         if (data && data.success) {
                             nearestAvailableDates.set(cacheKey, data);
-                        } else {
                         }
-                    } catch (error) {
-                    }
+                    } catch (error) {}
                 }
             }
-            
         }
 
         // Load time slots from API
@@ -1158,8 +1229,9 @@
             return selectedLocationBtn.dataset.location;
         }
 
-        function getServiceIdForLocation(locationKey, durationId) {
-            return API_CONFIG.locations[locationKey].services[durationId];
+        function getServiceIdForLocation(locationKey, durationId, trainer) {
+            const trainerKey = trainer === 'with' ? 'with' : 'without';
+            return API_CONFIG.locations[locationKey].services[trainerKey][durationId];
         }
 
         function getStaffIdForLocation(locationKey) {
@@ -1258,9 +1330,20 @@
             // Преобразуем total "1 197" -> 1197
             const amountAed = Number(String(bookingData.total).replace(/\s/g, ''));
 
+            // Маска телефона: из dataset или, если нет, собираем из UI
+            const uiDial = (document.querySelector('.phone-select-code')?.textContent || '').trim();
+            const uiLocal = String(document.getElementById('clientPhone')?.value || '').replace(/\D/g, '');
+            const maskedResolved = (document.getElementById('clientPhone')?.dataset?.masked)
+                || (uiDial && uiLocal ? `${uiDial} ${uiLocal}` : '');
+
+            // Определяем явные service_id/staff_id для прокидывания на бэкенд
+            const selectedServiceId = getServiceIdForLocation(bookingData.location, bookingData.duration, bookingData.trainer);
+            const selectedStaffId = getStaffIdForLocation(bookingData.location);
+
             const payload = {
                 name: bookingData.name,
                 phone: bookingData.phone,
+                phone_masked: maskedResolved,
                 location: bookingData.location,
                 duration: bookingData.duration,
                 trainer: bookingData.trainer,
@@ -1268,8 +1351,29 @@
                 date: bookingData.date,
                 amount_aed: amountAed,
                 return_url: window.location.href,
-                timezone_offset_minutes: new Date().getTimezoneOffset() * -1
+                timezone_offset_minutes: new Date().getTimezoneOffset() * -1,
+                service_id: selectedServiceId,
+                staff_id: selectedStaffId
             };
+
+            // Telegram: старт оплаты
+            try {
+                // Если маска не пришла, соберем из UI
+                let masked = payload.phone_masked || '';
+                if (!masked) {
+                    const dialUI = (document.querySelector('.phone-select-code')?.textContent || '').trim();
+                    const localUI = String(document.getElementById('clientPhone')?.value || '').replace(/\D/g, '');
+                    if (dialUI && localUI) masked = `${dialUI} ${localUI}`;
+                    else masked = payload.phone || '';
+                }
+                const trainerLabel = payload.trainer === 'with' ? 'С тренером' : 'Без тренера';
+                const message = `*Старт оплаты бронирования WakeMe*\n\n*Клиент:* ${payload.name || '-'}\n*Телефон:* ${masked || '-'}\n*Локация:* ${payload.location || '-'}\n*Длительность:* ${payload.duration || '-'} мин\n*Тренер:* ${trainerLabel}\n*Время:* ${payload.time || '-'}\n*Стоимость:* ${String(bookingData.total || '').toString()} AED\n*Дата:* ${payload.date || '-'}`;
+                fetch(`${API_CONFIG.proxyUrl}/api/send-telegram`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                }).catch(() => {});
+            } catch (_) {}
 
             // Клиентский лог
             try {
@@ -1323,108 +1427,144 @@
                 }
             });
 
+            // Показ "успех" после возврата со Stripe (?paid=1) — защищаем флагом sessionStorage
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const cameFromStripe = Boolean(params.get('session_id')) || sessionStorage.getItem('stripe_flow') === 'started';
+                if (params.get('paid') === '1' && cameFromStripe) {
+                    showPopup('success', 'Оплата получена', 'Мы напишем вам в WhatsApp для уточнения деталей');
+                    // Чистим URL, чтобы при обновлении модалка не всплывала снова
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('paid');
+                    url.searchParams.delete('session_id');
+                    history.replaceState({}, '', url.pathname + (url.search ? '?' + url.searchParams.toString() : '') + url.hash);
+                    sessionStorage.removeItem('stripe_flow');
+                } else {
+                    // На всякий случай очищаем старый флаг
+                    sessionStorage.removeItem('stripe_flow');
+                }
+            } catch (_) {}
+
             const phoneInput = document.getElementById('clientPhone');
             if (phoneInput) {
-                let iti = null;
-                const initTel = () => {
-                    try {
-                        if (window.intlTelInput) {
-                            iti = window.intlTelInput(phoneInput, {
-                                // авто-детект страны по IP
-                                initialCountry: 'auto',
-                                geoIpLookup: function(success) {
-                                    fetch('https://ipapi.co/json/')
-                                        .then(res => res.json())
-                                        .then(data => success((data && data.country_code) || 'AE'))
-                                        .catch(() => success('AE'));
-                                },
-                                separateDialCode: true,
-                                nationalMode: false, // будем отправлять E.164
-                                autoPlaceholder: 'off', // без маски для локальной части
-                                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.5.6/build/js/utils.js',
-                                preferredCountries: ['ae','ru','ua','kz']
-                            });
-                            console.log('[phone] intl-tel-input initialized');
-                            try { fetch(`${API_CONFIG.proxyUrl}/api/logs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ level:'info', message:'phone:init:plugin', data:{} }) }); } catch(e){}
-                        }
-                    } catch (e) {
-                        console.warn('intl-tel-input init failed:', e);
-                        try { fetch(`${API_CONFIG.proxyUrl}/api/logs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ level:'error', message:'phone:init:plugin_failed', data:{ error: String(e) } }) }); } catch(_){}
-                    }
-                };
+                // Кастомный контрол: галочка + код страны + ввод. Без флагов
+                const PRIORITY = ['AE','RU','UA','GB','FR','KZ'];
+                const COUNTRIES = [
+                    { cc: 'AE', name: 'UAE', dial: '+971' },
+                    { cc: 'RU', name: 'Russia', dial: '+7' },
+                    { cc: 'UA', name: 'Ukraine', dial: '+380' },
+                    { cc: 'KZ', name: 'Kazakhstan', dial: '+7' },
+                    { cc: 'AM', name: 'Armenia', dial: '+374' },
+                    { cc: 'AT', name: 'Austria', dial: '+43' },
+                    { cc: 'AZ', name: 'Azerbaijan', dial: '+994' },
+                    { cc: 'BY', name: 'Belarus', dial: '+375' },
+                    { cc: 'BE', name: 'Belgium', dial: '+32' },
+                    { cc: 'BA', name: 'Bosnia and Herzegovina', dial: '+387' },
+                    { cc: 'BG', name: 'Bulgaria', dial: '+359' },
+                    { cc: 'CA', name: 'Canada', dial: '+1' },
+                    { cc: 'CN', name: 'China', dial: '+86' },
+                    { cc: 'HR', name: 'Croatia', dial: '+385' },
+                    { cc: 'CY', name: 'Cyprus', dial: '+357' },
+                    { cc: 'CZ', name: 'Czechia', dial: '+420' },
+                    { cc: 'DK', name: 'Denmark', dial: '+45' },
+                    { cc: 'EE', name: 'Estonia', dial: '+372' },
+                    { cc: 'FI', name: 'Finland', dial: '+358' },
+                    { cc: 'FR', name: 'France', dial: '+33' },
+                    { cc: 'GE', name: 'Georgia', dial: '+995' },
+                    { cc: 'DE', name: 'Germany', dial: '+49' },
+                    { cc: 'GR', name: 'Greece', dial: '+30' },
+                    { cc: 'HU', name: 'Hungary', dial: '+36' },
+                    { cc: 'IN', name: 'India', dial: '+91' },
+                    { cc: 'IE', name: 'Ireland', dial: '+353' },
+                    { cc: 'IL', name: 'Israel', dial: '+972' },
+                    { cc: 'IT', name: 'Italy', dial: '+39' },
+                    { cc: 'JP', name: 'Japan', dial: '+81' },
+                    { cc: 'KG', name: 'Kyrgyzstan', dial: '+996' },
+                    { cc: 'LV', name: 'Latvia', dial: '+371' },
+                    { cc: 'LT', name: 'Lithuania', dial: '+370' },
+                    { cc: 'LU', name: 'Luxembourg', dial: '+352' },
+                    { cc: 'MD', name: 'Moldova', dial: '+373' },
+                    { cc: 'ME', name: 'Montenegro', dial: '+382' },
+                    { cc: 'NL', name: 'Netherlands', dial: '+31' },
+                    { cc: 'NO', name: 'Norway', dial: '+47' },
+                    { cc: 'PL', name: 'Poland', dial: '+48' },
+                    { cc: 'PT', name: 'Portugal', dial: '+351' },
+                    { cc: 'RO', name: 'Romania', dial: '+40' },
+                    { cc: 'RS', name: 'Serbia', dial: '+381' },
+                    { cc: 'SK', name: 'Slovakia', dial: '+421' },
+                    { cc: 'SI', name: 'Slovenia', dial: '+386' },
+                    { cc: 'ES', name: 'Spain', dial: '+34' },
+                    { cc: 'SE', name: 'Sweden', dial: '+46' },
+                    { cc: 'CH', name: 'Switzerland', dial: '+41' },
+                    { cc: 'TR', name: 'Turkey', dial: '+90' },
+                    { cc: 'GB', name: 'United Kingdom', dial: '+44' },
+                    { cc: 'US', name: 'USA', dial: '+1' },
+                    { cc: 'UZ', name: 'Uzbekistan', dial: '+998' }
+                ];
 
-                if (document.readyState === 'complete') initTel();
-                else window.addEventListener('load', initTel);
+                const sorted = [
+                    ...COUNTRIES.filter(c => PRIORITY.includes(c.cc)),
+                    ...COUNTRIES.filter(c => !PRIORITY.includes(c.cc)).sort((a,b) => a.name.localeCompare(b.name))
+                ];
 
-                // Fallback простого префикса страны, если плагин не загрузился
-                const mountSimplePrefix = () => {
-                    if (window.intlTelInput || phoneInput.dataset.simpleMounted) return;
-                    phoneInput.dataset.simpleMounted = '1';
-                    console.log('[phone] mount simple prefix fallback');
-                    try { fetch(`${API_CONFIG.proxyUrl}/api/logs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ level:'info', message:'phone:init:fallback', data:{} }) }); } catch(_){}
+                const wrapper = document.createElement('div');
+                wrapper.className = 'phone-input';
 
+                const selectBtn = document.createElement('div');
+                selectBtn.className = 'phone-select';
+                const codeEl = document.createElement('span'); codeEl.className = 'phone-select-code'; codeEl.textContent = '+971';
+                const caret = document.createElement('span'); caret.className = 'phone-caret';
+                selectBtn.appendChild(codeEl); selectBtn.appendChild(caret);
+
+                const dropdown = document.createElement('div');
+                dropdown.className = 'phone-dropdown';
+                sorted.forEach(item => {
                     const row = document.createElement('div');
-                    row.className = 'phone-row';
-                    const select = document.createElement('select');
-                    select.className = 'phone-code-select';
-                    const codes = [
-                        {cc:'AE', dial:'+971', label:'UAE'},
-                        {cc:'RU', dial:'+7', label:'Russia'},
-                        {cc:'UA', dial:'+380', label:'Ukraine'},
-                        {cc:'KZ', dial:'+7', label:'Kazakhstan'}
-                    ];
-                    codes.forEach(c => {
-                        const o = document.createElement('option');
-                        o.value = c.dial; o.textContent = `${c.label} (${c.dial})`;
-                        if (c.cc === 'AE') o.selected = true;
-                        select.appendChild(o);
+                    row.className = 'phone-item';
+                    row.dataset.cc = item.cc;
+                    row.dataset.dial = item.dial;
+                    row.innerHTML = `<span>${item.name}</span><span>${item.dial}</span>`;
+                    row.addEventListener('click', () => {
+                        codeEl.textContent = item.dial;
+                        dropdown.classList.remove('show');
+                        phoneInput.focus();
                     });
-                    const badge = document.createElement('div');
-                    badge.className = 'phone-code-badge';
-                    badge.textContent = select.value;
-                    select.addEventListener('change', () => { badge.textContent = select.value; });
+                    dropdown.appendChild(row);
+                });
 
-                    const parent = phoneInput.parentElement;
-                    parent.replaceChildren();
-                    row.appendChild(select);
-                    row.appendChild(badge);
-                    row.appendChild(phoneInput);
-                    parent.appendChild(row);
+                const parent = phoneInput.parentElement;
+                parent.replaceChildren();
+                wrapper.appendChild(selectBtn);
+                wrapper.appendChild(phoneInput);
+                wrapper.appendChild(dropdown);
+                parent.appendChild(wrapper);
 
-                    // только цифры в локальной части
-                    phoneInput.addEventListener('input', function() {
-                        const digits = this.value.replace(/\D/g, '');
-                        if (this.value !== digits) this.value = digits;
-                    });
+                // Тоггл списка по клику на галочку/код
+                selectBtn.addEventListener('click', () => dropdown.classList.toggle('show'));
+                document.addEventListener('click', (e) => { if (!wrapper.contains(e.target)) dropdown.classList.remove('show'); });
 
-                    // комбинируем номер на сабмите
-                    document.getElementById('bookingForm').addEventListener('submit', function() {
-                        const full = `${badge.textContent}${phoneInput.value}`;
-                        phoneInput.value = full.replace(/\D/g, '');
-                    });
-                };
+                // Геодетект страны (дефолт AE)
+                try {
+                    fetch('https://ipapi.co/json/')
+                        .then(r => r.json())
+                        .then(d => {
+                            const found = COUNTRIES.find(c => c.cc === (d && d.country_code));
+                            if (found) codeEl.textContent = found.dial;
+                        })
+                        .catch(() => {});
+                } catch(_) {}
 
-                // Если через 800мс плагин не появился — включаем fallback
-                setTimeout(() => { if (!window.intlTelInput) mountSimplePrefix(); }, 800);
-
-                // только цифры в локальной части (для обоих режимов)
+                // Только цифры в локальной части
                 phoneInput.addEventListener('input', function() {
                     const digits = this.value.replace(/\D/g, '');
                     if (this.value !== digits) this.value = digits;
                 });
 
-                // При сабмите заменяем на полный международный формат
+                // При сабмите — сохраняем маску, но не меняем значение поля
                 document.getElementById('bookingForm').addEventListener('submit', function() {
-                    try {
-                        if (iti && iti.getNumber) {
-                            const full = iti.getNumber();
-                            phoneInput.value = full.replace(/\D/g, '');
-                        } else {
-                            phoneInput.value = phoneInput.value.replace(/\D/g, '');
-                        }
-                    } catch (e) {
-                        phoneInput.value = phoneInput.value.replace(/\D/g, '');
-                    }
+                    const dial = codeEl.textContent || '';
+                    const local = phoneInput.value || '';
+                    phoneInput.dataset.masked = `${dial} ${local}`.trim();
                 });
             }
 
@@ -1492,6 +1632,7 @@
 
                 const phoneInput = document.getElementById('clientPhone');
                 if (phoneInput) {
+                    // Оставляем только цифры в локальной части, не подставляя код страны в поле
                     phoneInput.value = phoneInput.value.replace(/\D/g, '');
                 }
 
@@ -1512,18 +1653,61 @@
                     total: calculateTotalPrice()
                 };
 
-                const bookingBtn = document.getElementById('bookingBtn');
-                bookingBtn.disabled = true;
-                bookingBtn.textContent = 'Отправка...';
+                // Открываем модалку выбора способа оплаты
+                const overlay = document.getElementById('paymentChoiceOverlay');
+                overlay.classList.add('show');
 
-                try {
-                    await redirectToStripeCheckout(bookingData);
-                } catch (error) {
-                    showPopup('error', 'Ошибка оплаты', error.message || 'Не удалось перейти к оплате');
-                } finally {
-                    bookingBtn.disabled = false;
-                    bookingBtn.textContent = 'Забронировать';
+                const onPayCard = async () => {
+                    overlay.classList.remove('show');
+                    const bookingBtn = document.getElementById('bookingBtn');
+                    // Помечаем, что мы уходим в Stripe-флоу, чтобы по возврату корректно показать попап
+                    try { sessionStorage.setItem('stripe_flow', 'started'); } catch(_) {}
+                    bookingBtn.disabled = true;
+                    bookingBtn.textContent = 'Отправка...';
+                    try {
+                        await redirectToStripeCheckout(bookingData);
+                    } catch (error) {
+                        showPopup('error', 'Ошибка оплаты', error.message || 'Не удалось перейти к оплате');
+                    } finally {
+                        bookingBtn.disabled = false;
+                        bookingBtn.textContent = 'Забронировать';
+                        cleanup();
+                    }
+                };
+
+                const onPayLater = () => {
+                    overlay.classList.remove('show');
+                    // Формируем текст для WhatsApp
+                    const trainerText = bookingData.trainer === 'with' ? 'С ТРЕНЕРОМ' : 'БЕЗ ТРЕНЕРА';
+                    const text = `Добрый день! Хочу забронировать слот на ${bookingData.date} и ${bookingData.time}, на локации: ${bookingData.location}, ${bookingData.duration} МИНУТ ${trainerText}`;
+                    const url = `https://wa.me/971553560352?text=${encodeURIComponent(text)}`;
+                    window.open(url, '_blank');
+                    cleanup();
+                };
+
+                const onCloseOverlay = (e) => {
+                    if (e.target === overlay) {
+                        overlay.classList.remove('show');
+                        cleanup();
+                    }
+                };
+
+                const onCloseBtn = () => {
+                    overlay.classList.remove('show');
+                    cleanup();
+                };
+
+                function cleanup() {
+                    document.getElementById('payCardBtn').removeEventListener('click', onPayCard);
+                    document.getElementById('payLaterBtn').removeEventListener('click', onPayLater);
+                    overlay.removeEventListener('click', onCloseOverlay);
+                    document.getElementById('paymentCloseBtn')?.removeEventListener('click', onCloseBtn);
                 }
+
+                document.getElementById('payCardBtn').addEventListener('click', onPayCard);
+                document.getElementById('payLaterBtn').addEventListener('click', onPayLater);
+                overlay.addEventListener('click', onCloseOverlay);
+                document.getElementById('paymentCloseBtn')?.addEventListener('click', onCloseBtn);
             });
         });
 
@@ -1554,7 +1738,7 @@
             try {
                 const locationKey = getSelectedLocation();
                 const durationId = getSelectedDuration();
-                const serviceId = getServiceIdForLocation(locationKey, durationId);
+                const serviceId = getServiceIdForLocation(locationKey, durationId, getSelectedTrainer());
                 const staffId = getStaffIdForLocation(locationKey);
                 const companyId = API_CONFIG.companyId;
                 
@@ -1989,7 +2173,7 @@
             
             const selectedDuration = getSelectedDuration();
             const selectedLocation = getSelectedLocation();
-            const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
+            const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration, getSelectedTrainer());
             
             try {
                 const response = await fetch(`${API_CONFIG.proxyUrl}/api/slots?companyId=${API_CONFIG.companyId}&staffId=${API_CONFIG.locations[selectedLocation].staffId}&serviceId=${serviceId}&date=${dateISO}`, {
@@ -2105,7 +2289,7 @@
             
             const selectedDuration = getSelectedDuration();
             const selectedLocation = getSelectedLocation();
-            const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration);
+            const serviceId = getServiceIdForLocation(selectedLocation, selectedDuration, getSelectedTrainer());
             
             try {
                 const response = await fetch(`https://wakeme-booking-api-production.up.railway.app/api/availability`, {

@@ -55,25 +55,44 @@ const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const TIMEZONE_OFFSET_MINUTES = Number(process.env.TIMEZONE_OFFSET_MINUTES || '240'); // Dubai +04:00
 
 // Location/Service mapping (server mirror of frontend config)
+// Services split by trainer selection: without (base) and with (coach)
 const LOCATION_CONFIG = {
     DUBAI_HARBOUR_MARINA: {
         staffId: 2742288,
         services: {
-            30: 13070888,
-            45: 13070889,
-            60: 13070890,
-            90: 13070891,
-            120: 13070892
+            without: {
+                30: 13070888,
+                45: 13070889,
+                60: 13070890,
+                90: 13070891,
+                120: 13070892
+            },
+            with: {
+                30: 13070896,
+                45: 13070899,
+                60: 13070900,
+                90: 13070905,
+                120: 13070908
+            }
         }
     },
     DUBAI_CREEK_HARBOUR: {
         staffId: 2780637,
         services: {
-            30: 13070912,
-            45: 13070913,
-            60: 13070914,
-            90: 13070915,
-            120: 13070916
+            without: {
+                30: 13070912,
+                45: 13070913,
+                60: 13070914,
+                90: 13070915,
+                120: 13070916
+            },
+            with: {
+                30: 13070917,
+                45: 13070918,
+                60: 13070919,
+                90: 13070920,
+                120: 13070921
+            }
         }
     }
 };
@@ -97,15 +116,19 @@ function maskToken(token) {
     if (token.length <= 10) return token;
     return `${token.slice(0, 6)}...${token.slice(-4)}`;
 }
-async function createAltegioBooking({ location, duration, date, time, name, phone, phoneMasked, email, apiId, paymentSumAed }) {
+async function createAltegioBooking({ location, duration, date, time, name, phone, phoneMasked, email, apiId, paymentSumAed, serviceId: explicitServiceId, staffId: explicitStaffId, trainer }) {
     const loc = LOCATION_CONFIG[location];
     if (!loc) {
         throw new Error('Unknown location');
     }
-    const staffId = loc.staffId;
-    const serviceId = loc.services[duration];
+    // Prefer explicit IDs from caller (webhook)
+    const staffId = explicitStaffId || loc.staffId;
+    // Determine trainer key: 'with' or 'without'
+    const trainerKey = (trainer === 'with' || trainer === 'with_coach') ? 'with' : 'without';
+    const mappedServiceId = loc.services?.[trainerKey]?.[duration];
+    const serviceId = explicitServiceId || mappedServiceId;
     if (!serviceId) {
-        throw new Error('Unknown service for duration');
+        throw new Error('Unknown service for provided parameters');
     }
 
     // Формируем локальное время с фиксированным смещением (например, +04:00 для Дубая)
@@ -133,7 +156,8 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
         hasPartnerIdHeader: Boolean(checkHeaders['X-Partner-ID'] || false)
     });
     console.log('📦 [ALTEGIO] book_check payload:', {
-        appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ]
+        appointments: [ { id: 1, services: [serviceId], staff_id: staffId, datetime } ],
+        debug: { location, duration, trainer: trainerKey, serviceId, staffId, datetime }
     });
     const checkResp = await fetch(`${ALTEGIO_BASE_URL}/book_check/${ALTEGIO_COMPANY_ID}`, {
         method: 'POST',
@@ -169,6 +193,9 @@ async function createAltegioBooking({ location, duration, date, time, name, phon
             payment_sum: typeof paymentSumAed === 'number' ? paymentSumAed : undefined,
             prepaid_confirmed: true
         };
+        console.log('🧾 [ALTEGIO] book_record payload:', {
+            phone: '***', fullname: name, staff_id: staffId, serviceId, datetime, withServices
+        });
         const resp = await fetch(`${ALTEGIO_BASE_URL}/book_record/${ALTEGIO_COMPANY_ID}`, {
             method: 'POST',
             headers: partnerHeaders,
@@ -263,9 +290,11 @@ app.post('/api/availability', async (req, res) => {
 
         // Получаем staff_id из service_id (нужно добавить маппинг)
         let staffId;
-        if (service_id === 12200654 || service_id === 12199769 || service_id === 12952120 || service_id === 12200653 || service_id === 12203754) {
+        const harbourServices = new Set([13070888,13070889,13070890,13070891,13070892,13070896,13070899,13070900,13070905,13070908]);
+        const creekServices = new Set([13070912,13070913,13070914,13070915,13070916,13070917,13070918,13070919,13070920,13070921]);
+        if (harbourServices.has(Number(service_id))) {
             staffId = 2742288; // DUBAI_HARBOUR_MARINA
-        } else if (service_id === 12396432 || service_id === 12396457 || service_id === 12952179 || service_id === 12396453 || service_id === 12396454) {
+        } else if (creekServices.has(Number(service_id))) {
             staffId = 2780637; // DUBAI_CREEK_HARBOUR
         } else {
             staffId = 2742288; // Default
@@ -752,7 +781,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
             date,
             amount_aed,
             return_url,
-            timezone_offset_minutes
+            timezone_offset_minutes,
+            service_id,
+            staff_id
         } = req.body || {};
 
         if (!amount_aed || !duration || !location) {
@@ -801,7 +832,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
                 amount_aed_no_vat: String(baseAmount),
                 vat_percent: '5',
                 amount_aed_with_vat: String(Math.round(baseAmount * 1.05)),
-                timezone_offset_minutes: String(typeof timezone_offset_minutes === 'number' ? timezone_offset_minutes : TIMEZONE_OFFSET_MINUTES)
+                timezone_offset_minutes: String(typeof timezone_offset_minutes === 'number' ? timezone_offset_minutes : TIMEZONE_OFFSET_MINUTES),
+                service_id: String(service_id || ''),
+                staff_id: String(staff_id || '')
             }
         });
 
@@ -998,7 +1031,10 @@ app.post('/api/stripe/webhook', async (req, res) => {
                     phoneMasked: md.customer_phone_masked,
                     email: md.customer_email || '',
                     apiId: session.id,
-                    paymentSumAed: Number(md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100))
+                    paymentSumAed: Number(md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100)),
+                    serviceId: md.service_id ? Number(md.service_id) : undefined,
+                    staffId: md.staff_id ? Number(md.staff_id) : undefined,
+                    trainer: md.trainer
                 });
                 console.log('✅ [ALTEGIO] Запись создана:', booking);
 
