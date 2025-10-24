@@ -494,20 +494,29 @@ app.get('/api/all-services', async (req, res) => {
 
         const data = await response.json();
         console.log('📄 [ALTEGIO] Все услуги получены успешно');
+        
+        // Отладочная информация - показываем структуру первого элемента
+        if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+            console.log('🔍 [DEBUG] Структура первого элемента:');
+            console.log('Keys:', Object.keys(data.data[0]));
+            console.log('First service:', JSON.stringify(data.data[0], null, 2));
+        }
 
         // Форматируем данные для удобного отображения
         if (data && data.data && Array.isArray(data.data)) {
             const formattedServices = data.data.map(service => ({
                 id: service.id,
-                name: service.name || service.title || 'Без названия',
-                duration: service.duration || 'Не указано',
-                price: service.price || 'Не указано',
-                description: service.description || '',
+                name: service.name || service.title || service.attributes?.name || 'Без названия',
+                duration: service.duration || service.attributes?.duration || service.duration_minutes || 'Не указано',
+                price: service.price || service.attributes?.price || service.cost || 'Не указано',
+                description: service.description || service.attributes?.description || '',
                 active: service.active !== false ? '✅' : '❌',
-                category: service.category || 'Без категории',
-                staff_id: service.staff_id || 'Не указан',
-                created_at: service.created_at || '',
-                updated_at: service.updated_at || ''
+                category: service.category || service.attributes?.category || 'Без категории',
+                staff_id: service.staff_id || service.attributes?.staff_id || service.staffId || 'Не указан',
+                created_at: service.created_at || service.attributes?.created_at || '',
+                updated_at: service.updated_at || service.attributes?.updated_at || '',
+                // Дополнительные поля для отладки
+                raw_service: service // Полный объект услуги для анализа
             }));
 
             console.log(`📊 [ALTEGIO] Найдено услуг: ${formattedServices.length}`);
