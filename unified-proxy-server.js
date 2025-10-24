@@ -517,7 +517,16 @@ app.get('/api/all-services', async (req, res) => {
                                 allFields[prefix + key] = '[]';
                             } else if (value.length === 1) {
                                 // Если один элемент, показываем его значение
-                                allFields[prefix + key] = value[0];
+                                const item = value[0];
+                                if (typeof item === 'object' && item !== null) {
+                                    // Если это объект, извлекаем его поля
+                                    for (const [objKey, objValue] of Object.entries(item)) {
+                                        allFields[prefix + key + '_' + objKey] = objValue;
+                                    }
+                                    allFields[prefix + key] = `{${Object.keys(item).join(', ')}}`;
+                                } else {
+                                    allFields[prefix + key] = item;
+                                }
                             } else {
                                 // Если несколько элементов, показываем как строку
                                 allFields[prefix + key] = `[${value.join(', ')}]`;
