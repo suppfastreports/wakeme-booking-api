@@ -511,7 +511,18 @@ app.get('/api/all-services', async (req, res) => {
                 // Рекурсивно обходим все поля объекта
                 function extractFields(obj, prefix = '') {
                     for (const [key, value] of Object.entries(obj)) {
-                        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                        if (Array.isArray(value)) {
+                            // Если это массив, показываем содержимое
+                            if (value.length === 0) {
+                                allFields[prefix + key] = '[]';
+                            } else if (value.length === 1) {
+                                // Если один элемент, показываем его значение
+                                allFields[prefix + key] = value[0];
+                            } else {
+                                // Если несколько элементов, показываем как строку
+                                allFields[prefix + key] = `[${value.join(', ')}]`;
+                            }
+                        } else if (value !== null && typeof value === 'object') {
                             // Если это объект, рекурсивно обходим его поля
                             extractFields(value, prefix + key + '_');
                         } else {
