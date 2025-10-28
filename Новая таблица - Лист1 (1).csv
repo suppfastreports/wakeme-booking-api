@@ -1,0 +1,21 @@
+Категория,ID,Название,Название в чеке,Название для онлайн-записи,Цена от,Цена до,API_ID,Описание,ID мастеров,Длительность
+- WAKESURFING,13070888,30 MIN (+20 min of mooring),30 MIN (+20 min of mooring),30 MIN (+20 min of mooring),410,410,,,2742288,3000
+- WAKESURFING,13070889,45 MIN (+20 min of mooring),45 MIN (+20 min of mooring),45 MIN (+20 min of mooring),593,593,,,2742288,3900
+- WAKESURFING,13070890,60 MIN (+20 min of mooring),60 MIN (+20 min of mooring),60 MIN (+20 min of mooring),788,788,,,2742288,4800
+- WAKESURFING,13070891,90 MIN (+20 min of mooring),90 MIN (+20 min of mooring),90 MIN (+20 min of mooring),1197,1197,,,2742288,6600
+- WAKESURFING,13070892,120 MIN (+20 min of mooring),120 MIN (+20 min of mooring),120 MIN (+20 min of mooring),1575,1575,,,2742288,8400
+- WAKESURFING,13070912,30 MIN (+20 min of mooring),30 MIN (+20 min of mooring),30 MIN (+20 min of mooring),410,410,0,,2780637,3000
+- WAKESURFING,13070913,45 MIN (+20 min of mooring),45 MIN (+20 min of mooring),45 MIN (+20 min of mooring),593,593,0,,2780637,3900
+- WAKESURFING,13070914,60 MIN (+20 min of mooring),60 MIN (+20 min of mooring),60 MIN (+20 min of mooring),788,788,0,,2780637,4800
+- WAKESURFING,13070915,90 MIN (+20 min of mooring),90 MIN (+20 min of mooring),90 MIN (+20 min of mooring),1197,1197,0,,2780637,6600
+- WAKESURFING,13070916,120 MIN (+20 min of mooring),120 MIN (+20 min of mooring),120 MIN (+20 min of mooring),1575,1575,0,,2780637,8400
+- WAKESURFING + COACH,13070896,30 MIN + COACH (+20 min of mooring),30 MIN + COACH (+20 min of mooring),30 MIN + COACH (+20 min of mooring),567,567,,,2742288,3000
+- WAKESURFING + COACH,13070899,45 MIN + COACH (+10 min of mooring),45 MIN + COACH (+10 min of mooring),45 MIN + COACH (+10 min of mooring),830,830,,,2742288,3300
+- WAKESURFING + COACH,13070900,60 MIN + COACH (+10 min of mooring),60 MIN + COACH (+10 min of mooring),60 MIN + COACH (+10 min of mooring),1103,1103,,,2742288,4200
+- WAKESURFING + COACH,13070905,90 MIN + COACH (+20 min of mooring),90 MIN + COACH (+20 min of mooring),90 MIN + COACH (+20 min of mooring),1670,1670,,,2742288,6600
+- WAKESURFING + COACH,13070908,120 MIN + COACH (+20 min of mooring),120 MIN + COACH (+20 min of mooring),120 MIN + COACH (+20 min of mooring),2205,2205,,,2742288,8400
+- WAKESURFING + COACH,13070917,30 MIN + COACH (+20 min of mooring),30 MIN + COACH (+20 min of mooring),30 MIN + COACH (+20 min of mooring),567,567,0,,2780637,3000
+- WAKESURFING + COACH,13070918,45 MIN + COACH (+10 min of mooring),45 MIN + COACH (+10 min of mooring),45 MIN + COACH (+10 min of mooring),830,830,0,,2780637,3300
+- WAKESURFING + COACH,13070919,60 MIN + COACH (+10 min of mooring),60 MIN + COACH (+10 min of mooring),60 MIN + COACH (+10 min of mooring),1103,1103,0,,2780637,4200
+- WAKESURFING + COACH,13070920,90 MIN + COACH (+20 min of mooring),90 MIN + COACH (+20 min of mooring),90 MIN + COACH (+20 min of mooring),1670,1670,0,,2780637,6600
+- WAKESURFING + COACH,13070921,120 MIN + COACH (+20 min of mooring),120 MIN + COACH (+20 min of mooring),120 MIN + COACH (+20 min of mooring),2205,2205,0,,2780637,8400

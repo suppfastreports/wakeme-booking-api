@@ -1,0 +1,717 @@
+Get a list of dates available for booking
+
+get
+/book_dates/{company_id}
+The dates available for booking object has the following fields:
+
+Field	Type	Description
+working_days	array of working days grouped by month	Working days of an employee/organization
+working_dates	array of dates	An array of dates when the employee/organization works
+booking_days	array of days when there are free sessions	Array of days that are available for booking for the specified services
+booking_dates	array of dates	An array of dates when there are free sessions for the service to the selected employee/organization
+working days and booking_days have the same format: month:[array of days in this month]
+
+For example, this booking_days: "9": [ "4", "5"] "10": [ "14", "25"] Means that on September 4 and 5, and on October 14 and 25 there are free sessions for booking
+
+The following filters are available:
+
+service_ids: Array of service IDs. If you need dates when you can book the specified services
+staff_id: Employee ID. If you need dates when you can book the specified specialist
+date: Date within a month, if you need dates for a specific month
+Authorizations:
+bearer
+path Parameters
+company_id
+required
+number
+Company ID
+
+query Parameters
+service_ids[]	
+string
+Service ID. Filter by the list of service identifiers
+
+staff_id	
+number
+Example: staff_id=0
+Employee ID. Filter by employee ID Default: 0
+
+date	
+string
+Example: date=2015-09-01
+date in iso8601 format. Filter by month of booking.
+
+date_from	
+string
+Example: date_from=2015-09-01
+date in iso8601 format. Start of dates to search. Must be used together with the "date_to" param and overrides the "date" param.
+
+date_to	
+string
+Example: date_to=2015-09-30
+date in iso8601 format. End of dates to search. Must be used together with the "date_from" param and overrides the "date" param.
+
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token
+
+Responses
+200 OK
+Response Schema: application/json
+success	
+boolean
+Execution success status (true)
+
+data	
+object
+Data (object)
+
+meta	
+Array of objects
+Metadata (empty array)
+
+Response samples
+200
+Content type
+application/json
+
+Copy
+Expand allCollapse all
+{
+"success": true,
+"data": {
+"booking_days": {},
+"booking_dates": [],
+"working_days": {},
+"working_dates": []
+},
+"meta": [ ]
+}
+Get a List of Services Available for Booking
+
+get
+/book_services/{company_id}
+The object of services available for booking has the following fields:
+
+Field	Type	Description
+categories	array of objects	Array of service categories (you can't book a category)
+services	array of objects	Services available for booking by category
+An object from the categories array, has the following fields:
+
+Field	Type	Description
+id	number	Category ID
+title	string	Category name
+sex	number	Category belonging to gender (1 - male, 2 - female, 0 - not specified)
+weight	number	Category weight. Categories are sorted by weight, heavier ones first
+api_id	string	External Category ID
+An object from the services array, has the following fields:
+
+Field	Type	Description
+id	number	Service ID
+title	string	Service name
+category_id	number	Identifier of the category to which the service belongs
+weight	number	Category weight. Services are sorted by weight, heavier ones first
+price_min	number	The minimum cost of the service
+price_max	number	Maximum cost of the service
+discount	number	Service discount
+comment	string	Comment on the service
+active	number	Is the service active
+prepaid	string	Online payment status
+sex	number	Gender for which the service is provided
+session_length	number	Service duration in seconds (only if filter by employee is set)
+image	string	Image services
+If you need to get the services provided by a specific specialist, then you need to use the filter by specialist. The following filters are available:
+
+staff_id: Employee ID. If you need services that only the selected employee provides
+datetime: date (in iso8601 format). Specifies the desired appointment date. Use this parameter to retrieve services that can be booked with the selected specialist on that specific date.
+service_ids: An array of service IDs. If a specialist is already selected and the time and service(s) are part of an existing appointment, this parameter should be used to select an additional service.
+Authorizations:
+bearer
+path Parameters
+company_id
+required
+number
+Example: 4564
+Company ID
+
+query Parameters
+staff_id	
+number
+Example: staff_id=0
+Employee ID. Filter by employee ID Default: 0
+
+datetime	
+number
+Example: datetime=``
+date (in iso8601 format). Filter by service booking date (for example '2005-09-09T18:30') Default: ''
+
+service_ids[]	
+Array of numbers
+Service ID. Filter by the list of identifiers of already selected (within one appointment) services. It makes sense if a filter by specialist and date is set.
+
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token
+
+Responses
+200 OK
+Response Schema: application/json
+success	
+boolean
+Success status (true)
+
+data	
+object
+Object with data
+
+meta	
+Array of objects
+Metadata (empty array)
+
+Response samples
+200
+Content type
+application/json
+
+Copy
+Expand allCollapse all
+{
+"success": true,
+"data": {
+"events": [ ],
+"services": [],
+"category": []
+},
+"meta": [ ]
+}
+Get a list of the nearest available sessions
+
+get
+/book_staff_seances/{company_id}/{staff_id}/
+The employee's nearest sessions object has the following fields:
+
+Field	Type	Description
+session_date	string	Next date with available sessions
+sessions	array	List of available sessions
+The following filters are available:
+
+service_ids: Array of service IDs. If you need sessions, when can you book these services
+datetime: date (in iso8601 format) for which you want to get the next sessions
+Authorizations:
+bearer
+path Parameters
+company_id
+required
+number
+Company ID
+
+staff_id
+required
+number
+Employee ID
+
+query Parameters
+service_ids[]	
+Array of numbers
+Service ID. Filter by the list of service identifiers
+
+datetime	
+number
+date in iso8601 format. Filter by date
+
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Responses
+200 OK
+Response Schema: application/json
+success	
+boolean
+Execution success status (true)
+
+data	
+object
+Object with data
+
+meta	
+Array of objects
+Metadata (empty array)
+
+Response samples
+200
+Content type
+application/json
+
+Copy
+Expand allCollapse all
+{
+"success": true,
+"data": {
+"seance_date": "2025-09-21T23:00:00.000+03:00",
+"seances": []
+},
+"meta": [ ]
+}
+Get a list of employees available for booking
+
+get
+/book_staff/{company_id}
+Each object from the array of employees available for booking has the following fields:
+
+Field	Type	Description
+id	number	Employee ID
+name	string	Employee name
+specialization	string	Employee specialization
+position	object	Employee position
+bookable	boolean	Does the employee have sessions available for booking
+weight	number	Employee weight. When withdrawing, employees are sorted by weight, heavier first
+show_rating	number	Whether to show employee's rating (1 - show, 0 - don't show)
+rating	number	Employee rating
+votes_count	number	Number of votes rated employee
+comments_count	number	Number of comments to an employee
+avatar	string	Path to employee avatar file
+information	string	Additional information about the employee (HTML format)
+session_date	string	Date of the next day that there are available sessions (only for bookable = true)
+The following filters are available:
+
+service_ids: Array of service IDs. If you need employees who provide only the selected service
+datetime: date (in iso8601 format). If you need employees who have sessions for the specified service at the specified time
+Authorizations:
+bearer
+path Parameters
+company_id
+required
+number
+Example: 4564
+Company ID
+
+query Parameters
+service_ids[]	
+Array of numbers
+Service ID. Filter by the list of service identifiers
+
+datetime	
+number
+date in iso8601 format. Filter by service booking date (for example '2005-09-09T18:30')
+
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token
+
+Responses
+200 OK
+Response Schema: application/json
+success	
+boolean
+Execution success status (true)
+
+data	
+Array of objects
+Array of objects with data
+
+meta	
+Array of objects
+Metadata (empty array)
+
+Response samples
+200
+Content type
+application/json
+
+Copy
+Expand allCollapse all
+{
+"success": true,
+"data": [
+{},
+{}
+],
+"meta": [ ]
+}
+Get a List of Sessions Available for Booking
+
+get
+/book_times/{company_id}/{staff_id}/{date}
+The sessions available for booking object has the following fields:
+
+Field	Type	Description
+time	string	Session time (17:30 for example)
+session_length	number	Session duration in seconds
+datetime	datetime	Date and time of the session in ISO8601 format (must be passed when creating the appointment)
+The following filters are available:
+
+service_ids: Array of service IDs. If you need sessions, when can you book these services
+Authorizations:
+bearer
+path Parameters
+company_id
+required
+number
+Company ID
+
+date
+required
+string
+date in iso8601 format. Filter by booking date (eg '2015-09-30')
+
+staff_id
+required
+number
+Example: 0
+Employee ID. Filter by employee ID Default: 0
+
+query Parameters
+service_ids[]	
+string
+Service ID. Filter by the list of service identifiers
+
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token
+
+Responses
+200 OK
+Response Schema: application/json
+success	
+boolean
+Execution success status (true)
+
+data	
+Array of objects
+Array of objects with data
+
+meta	
+Array of objects
+Metadata (empty array)
+
+Response samples
+200
+Content type
+application/json
+
+Copy
+Expand allCollapse all
+{
+"success": true,
+"data": [
+{},
+{},
+{},
+{},
+{}
+],
+"meta": [ ]
+}
+User Appointments
+Log in with phone number and code
+
+post
+/user/auth
+To access both online and offline (e.g., phone-made) appointments, the user must log in by verifying their phone number. This is done by requesting a confirmation code to be sent via SMS using the "SMS phone number verification code" endpoint.
+
+Authorizations:
+bearer
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token
+
+Request Body schema: application/json
+login
+required
+string
+Phone number or Email
+
+password
+required
+string
+Password
+
+Responses
+201 Created
+Response Schema: application/json
+user_token	
+string
+User_token of the user
+
+Request samples
+Payload
+Content type
+application/json
+
+Copy
+{
+"login": "testuser@alteg.io",
+"password": "testpass"
+}
+Response samples
+201
+Content type
+application/json
+
+Copy
+{
+"user_token": "wec23fh8cDfFV4432fc352456"
+}
+Delete User Appointment
+
+delete
+/user/records/{record_id}/{record_hash}
+Authorizations:
+(beareruser)
+path Parameters
+record_id
+required
+number
+Example: 22123
+Appointment ID (enough to delete the appointment if the user is authorized)
+
+record_hash
+required
+string
+Example: 'dawd4fs09rhf0s9fafef0'
+HASH appointments (required to delete the record if the user is not authorized)
+
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token, User user_token
+
+Responses
+200 OK
+Online Booking Users
+Authorize Online Booking User
+
+post
+/booking/auth
+When a user of an online account changes their password, their API key will change and a new authorization will be required
+
+Attribute	Type	Description
+login	string	The visitor's phone number in the format 380000000000, or their email address.
+password	string	Visitor password
+Authorizations:
+bearer
+header Parameters
+Accept
+required
+string
+Example: application/vnd.api.v2+json
+e.g. application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token
+
+Request Body schema: application/json
+login
+required
+string
+Phone number or Email
+
+password
+required
+string
+Password
+
+Responses
+201 Created
+Response Schema: application/json
+id	
+integer <int32>
+User ID
+
+user_token	
+string
+User_token of the user
+
+name	
+string
+Username
+
+phone	
+string
+User phone
+
+login	
+string
+User login
+
+email	
+string
+User mailing address
+
+avatar	
+string
+Path to the user's avatar file
+
+Request samples
+Payload
+Content type
+application/json
+
+Copy
+{
+"login": "testuser@alteg.io",
+"password": "testpass"
+}
+Response samples
+201
+Content type
+application/json
+
+Copy
+{
+"id": 123456,
+"user_token": "wec23fh8cDfFV4432fc352456",
+"name": "James Smith",
+"phone": "+1-315-555-0175",
+"login": "j.smith",
+"email": "j.smith@example.com",
+"avatar": "https://assets.alteg.io/general/0/01/123456789098765_12345678909876.png"
+}
+Send SMS verification code for phone number to change data
+
+get
+/booking/user/phone_confirmation
+The request must contain one of two parameters: company_id or group_id
+
+Authorizations:
+(beareruser)
+query Parameters
+company_id
+required
+integer
+Company ID
+
+group_id
+required
+integer
+Chain ID
+
+phone
+required
+string
+Phone number
+
+header Parameters
+Accept
+required
+string
+application/vnd.api.v2+json
+
+Content-Type
+required
+string
+application/json
+
+Authorization
+required
+string
+Bearer partner_token, User user_token
+
+Responses
+202 Accepted
+Response samples
+202
+Content type
+application/json
+
+Copy
+Expand allCollapse all
+{
+"success": true,
+"meta": {
+"message": "Accepted"
+}
+}
