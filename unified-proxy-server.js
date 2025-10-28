@@ -884,11 +884,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             locale: 'en',
             automatic_tax: { enabled: false },
             billing_address_collection: 'auto',
-            shipping_address_collection: null,
             allow_promotion_codes: false,
-            payment_intent_data: {
-                currency: 'aed'
-            },
             metadata: {
                 customer_name: name || '',
                 customer_phone: phone || '',
