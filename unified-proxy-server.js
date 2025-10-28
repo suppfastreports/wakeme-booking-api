@@ -863,6 +863,26 @@ app.post('/api/create-checkout-session', async (req, res) => {
         const successUrl = `${baseReturnUrl}${baseReturnUrl.includes('?') ? '&' : '?'}paid=1&session_id={CHECKOUT_SESSION_ID}`;
         const cancelUrl = `${baseReturnUrl}${baseReturnUrl.includes('?') ? '&' : '?'}canceled=1`;
 
+        const metadata = {
+            customer_name: name || '',
+            customer_phone: phone || '',
+            customer_phone_masked: phone_masked || '',
+            location,
+            duration_minutes: String(duration || ''),
+            trainer: trainer === 'with' ? 'with_coach' : 'without_coach',
+            time: time || '',
+            date: date || '',
+            amount_aed_no_vat: String(baseAmount),
+            vat_percent: '5',
+            amount_aed_with_vat: String(Math.round(baseAmount * 1.05)),
+            timezone_offset_minutes: String(typeof timezone_offset_minutes === 'number' ? timezone_offset_minutes : TIMEZONE_OFFSET_MINUTES),
+            service_id: String(service_id || ''),
+            staff_id: String(staff_id || '')
+        };
+
+        // ДЕБАГ: Логируем metadata перед отправкой в Stripe
+        console.log('🔍 [STRIPE CREATE DEBUG] Metadata being sent:', JSON.stringify(metadata, null, 2));
+
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             currency: 'aed',
@@ -885,22 +905,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             automatic_tax: { enabled: false },
             billing_address_collection: 'auto',
             allow_promotion_codes: false,
-            metadata: {
-                customer_name: name || '',
-                customer_phone: phone || '',
-                customer_phone_masked: phone_masked || '',
-                location,
-                duration_minutes: String(duration || ''),
-                trainer: trainer === 'with' ? 'with_coach' : 'without_coach',
-                time: time || '',
-                date: date || '',
-                amount_aed_no_vat: String(baseAmount),
-                vat_percent: '5',
-                amount_aed_with_vat: String(Math.round(baseAmount * 1.05)),
-                timezone_offset_minutes: String(typeof timezone_offset_minutes === 'number' ? timezone_offset_minutes : TIMEZONE_OFFSET_MINUTES),
-                service_id: String(service_id || ''),
-                staff_id: String(staff_id || '')
-            }
+            metadata
         });
 
         console.log('✅ [STRIPE] Сессия создана:', session.id);
@@ -1058,6 +1063,11 @@ app.post('/api/stripe/webhook', async (req, res) => {
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
             const md = session.metadata || {};
+            
+            // ДЕБАГ: Логируем что пришло в webhook
+            console.log('🔍 [STRIPE WEBHOOK DEBUG] Session metadata:', JSON.stringify(md, null, 2));
+            console.log('🔍 [STRIPE WEBHOOK DEBUG] Session object keys:', Object.keys(session));
+            
             const amountAed = md.amount_aed_with_vat || Math.round((session.amount_total || 0) / 100);
 
             // Номер телефона в маске вида "+код номер". Если не пришло, попробуем восстановить из raw + метаданных
