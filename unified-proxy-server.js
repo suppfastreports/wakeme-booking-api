@@ -47,9 +47,14 @@ const ALTEGIO_USER_TOKEN = process.env.ALTEGIO_USER_TOKEN || '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || 'YOUR_CHAT_ID_HERE';
 
-// Stripe Configuration
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+// Stripe Configuration (с поддержкой тестового режима)
+const USE_STRIPE_TEST = process.env.USE_STRIPE_TEST === 'true' || process.env.USE_STRIPE_TEST === 'TRUE';
+const STRIPE_SECRET_KEY = USE_STRIPE_TEST
+    ? (process.env.STRIPE_TEST_SECRET_KEY || '')
+    : (process.env.STRIPE_SECRET_KEY || '');
+const STRIPE_WEBHOOK_SECRET = USE_STRIPE_TEST
+    ? (process.env.STRIPE_TEST_WEBHOOK_SECRET || '')
+    : (process.env.STRIPE_WEBHOOK_SECRET || '');
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const TIMEZONE_OFFSET_MINUTES = Number(process.env.TIMEZONE_OFFSET_MINUTES || '240'); // Dubai +04:00
@@ -266,6 +271,7 @@ console.log('📱 Telegram Bot:', TELEGRAM_BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' ?
 console.log('🏢 Altegio Company ID:', ALTEGIO_COMPANY_ID ? ALTEGIO_COMPANY_ID : 'НЕ ЗАДАН');
 console.log('👤 Altegio User Token:', ALTEGIO_USER_TOKEN ? 'Настроен' : 'НЕ ЗАДАН');
 console.log('💳 Stripe:', STRIPE_SECRET_KEY ? 'Настроен' : 'НЕ НАСТРОЕН');
+console.log('💳 Stripe режим:', USE_STRIPE_TEST ? '⚠️  ТЕСТОВЫЙ' : '✅ ПРОДАКШН');
 console.log(`🌐 Сервер: http://localhost:${PORT}`);
 console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🔧 Port: ${PORT}`);
